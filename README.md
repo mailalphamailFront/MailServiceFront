@@ -8,7 +8,7 @@
 
 ```jsx
 1. 코드 복사
--> git clone https://github.com/JoshyWoshy1212/MSMR.git
+-> git clone https://github.com/JoshyWoshy1212/MailServiceFront.git
 -> cd MSMR
 
 2. 브렌치 생성(새 기능을 만들 때마다 아래 명령어 활용)
