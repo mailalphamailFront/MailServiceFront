@@ -5,10 +5,10 @@ export const authService = {
 
   login: async (credentials: any) => {
     const params = new URLSearchParams();
-    // params.append('username', credentials.username);
-    // params.append('password', credentials.password);
+    params.append('username', credentials.username);
+    params.append('password', credentials.password);
 
-    const response = await api.post('/api/login', credentials, {
+    const response = await api.post('/api/login', params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
