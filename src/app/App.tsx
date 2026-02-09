@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams, useNavigate } from 'react-router';
 import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, User } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { EmailListItem } from './components/EmailListItem';
@@ -7,18 +7,19 @@ import { EmailView } from './components/EmailView';
 import { ComposeModal } from './components/ComposeModal';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { Tooltip } from './components/Tooltip';
+import { SettingsPage } from './components/SettingsPage';
 import { MOCK_EMAILS, Email } from './types';
 import { toast, Toaster } from 'sonner';
 
-function Layout({ 
-  children, 
-  onSend, 
-  isComposeOpen, 
-  setIsComposeOpen, 
-  composeData, 
-  setComposeData 
-}: { 
-  children: React.ReactNode, 
+function Layout({
+  children,
+  onSend,
+  isComposeOpen,
+  setIsComposeOpen,
+  composeData,
+  setComposeData
+}: {
+  children: React.ReactNode,
   onSend: (email: Partial<Email>) => void,
   isComposeOpen: boolean,
   setIsComposeOpen: (open: boolean) => void,
@@ -27,6 +28,7 @@ function Layout({
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = searchParams.get('q') || '';
 
   const handleAction = (msg: string) => toast.info(msg);
@@ -37,15 +39,15 @@ function Layout({
         setComposeData(null);
         setIsComposeOpen(true);
       }} />
-      
+
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20">
           <div className="flex-1 max-w-2xl">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Search messages, people, or files..."
                 value={query}
                 onChange={(e) => setSearchParams({ q: e.target.value })}
@@ -56,7 +58,7 @@ function Layout({
 
           <div className="flex items-center gap-2 ml-4">
             <Tooltip text="Notifications">
-              <button 
+              <button
                 onClick={() => handleAction('Notifications: You have 3 new alerts')}
                 className="hidden md:flex p-2 hover:bg-gray-50 rounded-lg text-gray-500 transition-colors relative"
               >
@@ -64,10 +66,10 @@ function Layout({
                 <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
               </button>
             </Tooltip>
-            
+
             <Tooltip text="Settings">
-              <button 
-                onClick={() => handleAction('Settings: General preferences opened')}
+              <button
+                onClick={() => navigate('/settings')}
                 className="hidden md:flex p-2 hover:bg-gray-50 rounded-lg text-gray-500 transition-colors"
               >
                 <Settings className="w-5 h-5" />
@@ -75,7 +77,7 @@ function Layout({
             </Tooltip>
 
             <Tooltip text="Help">
-              <button 
+              <button
                 onClick={() => handleAction('Help: Support center documentation')}
                 className="hidden md:flex p-2 hover:bg-gray-50 rounded-lg text-gray-500 transition-colors"
               >
@@ -84,18 +86,18 @@ function Layout({
             </Tooltip>
 
             <div className="w-px h-6 bg-gray-200 mx-2 hidden md:block"></div>
-            
+
             {/* Profile Trigger */}
             <div className="relative">
               <Tooltip text="Account Settings">
-                <button 
+                <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
                   className="flex items-center gap-2 p-1 pr-3 hover:bg-gray-50 rounded-full transition-all border border-transparent hover:border-gray-100"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
-                    <img 
-                      src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=100" 
-                      alt="Profile" 
+                    <img
+                      src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=100"
+                      alt="Profile"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -105,14 +107,14 @@ function Layout({
                   </div>
                 </button>
               </Tooltip>
-              
-              <ProfileDropdown 
-                isOpen={isProfileOpen} 
-                onClose={() => setIsProfileOpen(false)} 
+
+              <ProfileDropdown
+                isOpen={isProfileOpen}
+                onClose={() => setIsProfileOpen(false)}
               />
             </div>
 
-            <button 
+            <button
               onClick={() => handleAction('Navigation menu toggled')}
               className="p-2 hover:bg-gray-50 rounded-lg text-gray-500 transition-colors lg:hidden"
             >
@@ -127,9 +129,9 @@ function Layout({
         </main>
       </div>
 
-      <ComposeModal 
-        isOpen={isComposeOpen} 
-        onClose={() => setIsComposeOpen(false)} 
+      <ComposeModal
+        isOpen={isComposeOpen}
+        onClose={() => setIsComposeOpen(false)}
         onSend={onSend}
         initialData={composeData}
       />
@@ -157,9 +159,9 @@ function EmailListPage({ emails, onToggleStar, onDelete, onArchive, onToggleRead
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
       const matchesFolder = folder === 'starred' ? email.starred : email.folder === folder;
-      const matchesSearch = !query || 
-        email.sender.toLowerCase().includes(query) || 
-        email.subject.toLowerCase().includes(query) || 
+      const matchesSearch = !query ||
+        email.sender.toLowerCase().includes(query) ||
+        email.subject.toLowerCase().includes(query) ||
         email.content.toLowerCase().includes(query);
       return matchesFolder && matchesSearch;
     });
@@ -180,14 +182,14 @@ function EmailListPage({ emails, onToggleStar, onDelete, onArchive, onToggleRead
             <span className="text-xs">{filteredEmails.length} messages</span>
           </div>
         </div>
-        
+
         <div className="flex-1 overflow-y-auto">
           {filteredEmails.length > 0 ? (
             filteredEmails.map(email => (
-              <EmailListItem 
-                key={email.id} 
-                email={email} 
-                folder={folder} 
+              <EmailListItem
+                key={email.id}
+                email={email}
+                folder={folder}
                 onToggleStar={onToggleStar}
                 onMarkRead={onMarkRead}
               />
@@ -203,14 +205,14 @@ function EmailListPage({ emails, onToggleStar, onDelete, onArchive, onToggleRead
 
       {/* Detail Column */}
       <div className={`flex-1 ${!id ? 'hidden lg:flex' : 'flex'}`}>
-        <EmailView 
-          onToggleStar={onToggleStar} 
-          onDelete={onDelete} 
+        <EmailView
+          onToggleStar={onToggleStar}
+          onDelete={onDelete}
           onArchive={onArchive}
           onToggleRead={onToggleRead}
           onReply={onReply}
           onForward={onForward}
-          emails={emails} 
+          emails={emails}
         />
       </div>
     </>
@@ -223,7 +225,7 @@ export default function App() {
   const [composeData, setComposeData] = useState<any>(null);
 
   const toggleStar = (id: string) => {
-    setEmails(prev => prev.map(email => 
+    setEmails(prev => prev.map(email =>
       email.id === id ? { ...email, starred: !email.starred } : email
     ));
   };
@@ -234,14 +236,14 @@ export default function App() {
   };
 
   const archiveEmail = (id: string) => {
-    setEmails(prev => prev.map(email => 
+    setEmails(prev => prev.map(email =>
       email.id === id ? { ...email, folder: 'trash' } : email
     ));
     toast.success('Conversation archived');
   };
 
   const toggleRead = (id: string) => {
-    setEmails(prev => prev.map(email => 
+    setEmails(prev => prev.map(email =>
       email.id === id ? { ...email, read: !email.read } : email
     ));
     const email = emails.find(e => e.id === id);
@@ -249,7 +251,7 @@ export default function App() {
   };
 
   const markRead = (id: string) => {
-    setEmails(prev => prev.map(email => 
+    setEmails(prev => prev.map(email =>
       email.id === id ? { ...email, read: true } : email
     ));
   };
@@ -283,44 +285,45 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <Layout 
-        onSend={sendEmail} 
-        isComposeOpen={isComposeOpen} 
+      <Layout
+        onSend={sendEmail}
+        isComposeOpen={isComposeOpen}
         setIsComposeOpen={setIsComposeOpen}
         composeData={composeData}
         setComposeData={setComposeData}
       >
         <Routes>
           <Route path="/" element={<Navigate to="/inbox" replace />} />
-          <Route 
-            path="/:folder" 
+          <Route
+            path="/:folder"
             element={
-              <EmailListPage 
-                emails={emails} 
-                onToggleStar={toggleStar} 
-                onDelete={deleteEmail} 
+              <EmailListPage
+                emails={emails}
+                onToggleStar={toggleStar}
+                onDelete={deleteEmail}
                 onArchive={archiveEmail}
                 onToggleRead={toggleRead}
                 onMarkRead={markRead}
                 onReply={handleReply}
                 onForward={handleForward}
               />
-            } 
+            }
           />
-          <Route 
-            path="/:folder/:id" 
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route
+            path="/:folder/:id"
             element={
-              <EmailListPage 
-                emails={emails} 
-                onToggleStar={toggleStar} 
-                onDelete={deleteEmail} 
+              <EmailListPage
+                emails={emails}
+                onToggleStar={toggleStar}
+                onDelete={deleteEmail}
                 onArchive={archiveEmail}
                 onToggleRead={toggleRead}
                 onMarkRead={markRead}
                 onReply={handleReply}
                 onForward={handleForward}
               />
-            } 
+            }
           />
           <Route path="*" element={<Navigate to="/inbox" replace />} />
         </Routes>
