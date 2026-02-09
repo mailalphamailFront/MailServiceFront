@@ -2,16 +2,25 @@ import api from '../axiosInstance';
 
 export const authService = {
   // Login an existing user
+
   login: async (credentials: any) => {
-    const response = await api.post('/auth/login', credentials);
+    const params = new URLSearchParams();
+    // params.append('username', credentials.username);
+    // params.append('password', credentials.password);
+
+    const response = await api.post('/api/login', credentials, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
     return response.data;
   },
 
   // Register a new user
   register: async (userData: any) => {
     // server.js only expects email and password
-    const response = await api.post('/auth/signup', {
-      email: userData.email,
+    const response = await api.post('/api/users/register', {
+      username: userData.email,
       password: userData.password
     });
     return response.data;

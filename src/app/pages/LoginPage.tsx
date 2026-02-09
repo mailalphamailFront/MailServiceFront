@@ -22,11 +22,11 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const response = await authService.login({ email, password });
+      const response = await authService.login({ username: email, password });
       // 보통 백엔드에서 token을 반환한다고 가정
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify(response.user));
+      if (response) {
+        //localStorage.setItem('token', response.token);
+        localStorage.setItem('user', JSON.stringify(response));
         toast.success('로그인에 성공했습니다!');
         navigate('/inbox');
       } else {
