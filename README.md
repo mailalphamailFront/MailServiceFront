@@ -81,6 +81,20 @@ GitHub 레포지토리 페이지에 들어가면
 -> git push origin [브랜치 이름]
 ```
 
+## 다른 사람의 브랜치를 확인하고 싶을 때
+
+```jsx
+1. git을 최신화하여 다른 사람들이 만든 branch 동기화
+-> git fetch
+
+2. 다른 brach로 넘어가기 전 임시 저장하기
+-> git stash
+(git stash pop 명령어도 돌아가기 가능 -> 오류 방지를 위함)
+
+2-1. 다른 사람의 브랜치 가져오기
+-> git checkout [브랜치 이름]
+```
+
 ## 실행 방법
 (처음 실행한다는 가정 하)
 ```jsx
@@ -89,11 +103,11 @@ GitHub 레포지토리 페이지에 들어가면
 //➜  Local:   http://localhost:5173/
 //위 내용 뜨면 성공
 
-2-1. Server 켜기 (/MSMR/Server/에서)
+2-1. client 켜기
 -> npm start
 // "Server running on port 5000" 뜨면 성공
 
 3. 끄는 방법 -> 터미널에서 ctrl+c
 ```
 
-install npm을 모두 완료한 상태라면? 2번 내용만 실행하여 client, server 켜기
+install npm을 모두 완료한 상태라면? 2번 내용만 실행하여 client 켜기
