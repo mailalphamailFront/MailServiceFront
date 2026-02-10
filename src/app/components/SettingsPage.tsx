@@ -1,15 +1,79 @@
 import React, { useState } from 'react';
 import { User, Bell, Shield, Palette, Globe, HelpCircle, CreditCard, Key, MessageSquare, Folder, Filter, Forward, Lock, ChevronLeft, Mail } from 'lucide-react';
 import { SettingsSidebar } from './SettingsSidebar';
+import axios, { AxiosError } from 'axios';
+import { toast } from 'sonner';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [userLoginPassword, setUserLoginPassword] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
+  interface ConnectedService {
+    id: string;
+    email: string;
+  }
 
-  const handleConnect = () => {
-    alert(`Connecting to ${selectedService}\nEmail: ${email}\nPassword: ${password}`);
+  const [connectedServices, setConnectedServices] = useState<ConnectedService[]>([]);
+
+  const handleConnect = async () => {
+    if (!email || !password || !selectedService || !userLoginPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    setIsConnecting(true);
+    const toastId = toast.loading('Connecting to ' + selectedService + '...');
+
+    try {
+      // const url = import.meta.env.API_URL + '/accounts';
+      const url = '/api/accounts';
+      const payload = {
+        accountEmail: email,
+        accountPassword: password,
+        provider: selectedService.toUpperCase(), // 'gmail' -> 'GMAIL'
+        userLoginPassword: userLoginPassword
+      };
+
+      const response = await axios.post(url, payload, {
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('Account connected successfully:', response.data);
+      toast.success('Account connected successfully!', { id: toastId });
+
+      setConnectedServices(prev => [...prev, { id: selectedService, email }]);
+      setSelectedService(null);
+      setEmail('');
+      setPassword('');
+      setUserLoginPassword('');
+    } catch (error: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      console.error('Connection error:', error);
+
+      let errorMessage = 'Failed to connect account';
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        const msg = error.response?.data?.message || error.message;
+        if (status && status >= 400) {
+          errorMessage = `Error ${status}: ${msg}`;
+          console.log(errorMessage);
+        } else {
+          errorMessage = msg || errorMessage;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
+      toast.error(errorMessage, { id: toastId });
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const renderContent = () => {
@@ -181,6 +245,48 @@ export function SettingsPage() {
 
         if (selectedService) {
           const service = services.find(s => s.id === selectedService);
+          const connectedService = connectedServices.find(s => s.id === selectedService);
+
+          if (connectedService) {
+            return (
+              <div className="max-w-xl">
+                <button
+                  onClick={() => setSelectedService(null)}
+                  className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors group"
+                >
+                  <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                  <span className="font-bold">Back to Services</span>
+                </button>
+
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-3 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    {service?.logo}
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Connected with {service?.name}</h2>
+                    <p className="text-gray-500">{connectedService.email}</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+                  <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700">
+                    <Shield className="w-5 h-5" />
+                    <p className="text-sm font-medium">Your account is securely connected and syncing.</p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      alert("The disconnect feature is coming soon!");
+                    }}
+                    className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 border border-red-100 transition-all flex items-center justify-center gap-2"
+                  >
+                    Disconnect Account
+                  </button>
+                </div>
+              </div>
+            );
+          }
+
           return (
             <div className="max-w-xl">
               <button
@@ -209,27 +315,77 @@ export function SettingsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder={`yourname@${selectedService}.com`}
-                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    disabled={isConnecting}
+                    tabIndex={1}
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center ml-1">
                     <label className="text-sm font-bold text-gray-700">App Password</label>
-                    <button className="text-[12px] text-blue-600 hover:underline font-medium">How to generate?</button>
+                    <div className="flex gap-3">
+                      <button
+                        className="text-[12px] text-blue-600 hover:underline font-medium"
+                        onClick={() => {
+                          let envPassword = '';
+                          switch (selectedService) {
+                            case 'gmail': envPassword = import.meta.env.VITE_TEST_GMAIL_PASSWORD; break;
+                            case 'naver': envPassword = import.meta.env.VITE_TEST_NAVER_PASSWORD; break;
+                            case 'daum': envPassword = import.meta.env.VITE_TEST_DAUM_PASSWORD; break;
+                            case 'yahoo': envPassword = import.meta.env.VITE_TEST_YAHOO_PASSWORD; break;
+                            case 'outlook': envPassword = import.meta.env.VITE_TEST_OUTLOOK_PASSWORD; break;
+                            case 'icloud': envPassword = import.meta.env.VITE_TEST_ICLOUD_PASSWORD; break;
+                          }
+                          if (envPassword) {
+                            setPassword(envPassword);
+                            toast.success(`Filled password for ${services.find(s => s.id === selectedService)?.name}`);
+                          } else {
+                            toast.error(`No test password found for ${selectedService} in .env`);
+                          }
+                        }}
+                        tabIndex={-1}
+                      >
+                        Fill password from .env
+                      </button>
+                      <button className="text-[12px] text-blue-600 hover:underline font-medium" tabIndex={-1}>How to generate?</button>
+                    </div>
                   </div>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your app password"
-                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                    disabled={isConnecting}
+                    tabIndex={2}
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-bold text-gray-700 ml-1">Current User Login Password</label>
+                  <input
+                    type="password"
+                    value={userLoginPassword}
+                    onChange={(e) => setUserLoginPassword(e.target.value)}
+                    placeholder="Enter your login password for validation"
+                    disabled={isConnecting}
+                    tabIndex={3}
+                    className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <button
                   onClick={handleConnect}
-                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
+                  disabled={isConnecting}
+                  tabIndex={3}
+                  className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  Connect Account
+                  {isConnecting ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    'Connect Account'
+                  )}
                 </button>
               </div>
 
@@ -247,18 +403,27 @@ export function SettingsPage() {
             <p className="text-gray-500 mb-8">Link your existing mailboxes to view all your messages in one place.</p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {services.map((service) => (
-                <button
-                  key={service.id}
-                  onClick={() => setSelectedService(service.id)}
-                  className={`flex flex-col items-center justify-center p-8 rounded-2xl bg-white border border-gray-100 transition-all group ${service.bg} ${service.border} hover:shadow-lg active:scale-[0.98]`}
-                >
-                  <div className="mb-4 transform group-hover:scale-110 transition-transform">
-                    {service.logo}
-                  </div>
-                  <span className="text-sm font-bold text-gray-900">Sign in with {service.name}</span>
-                </button>
-              ))}
+              {services.map((service) => {
+                const isConnected = connectedServices.some(s => s.id === service.id);
+                return (
+                  <button
+                    key={service.id}
+                    onClick={() => setSelectedService(service.id)}
+                    className={`flex flex-col items-center justify-center p-8 rounded-2xl bg-white border transition-all group ${service.bg} ${isConnected ? 'border-green-200 ring-2 ring-green-100' : 'border-gray-100 ' + service.border
+                      } hover:shadow-lg active:scale-[0.98] relative`}
+                  >
+                    {isConnected && (
+                      <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm ring-2 ring-white"></div>
+                    )}
+                    <div className="mb-4 transform group-hover:scale-110 transition-transform">
+                      {service.logo}
+                    </div>
+                    <span className="text-sm font-bold text-gray-900">
+                      {isConnected ? 'Connected' : `Sign in with ${service.name}`}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             <div className="mt-12 p-8 rounded-3xl bg-gray-50 border border-gray-100 flex items-center gap-6">
