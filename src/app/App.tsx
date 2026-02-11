@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams, useNavigate } from 'react-router';
+import { Routes, Route, Navigate, useParams, useSearchParams, useNavigate, useLocation } from 'react-router';
 import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2, User } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { EmailListItem } from './components/EmailListItem';
@@ -258,9 +258,14 @@ export default function App() {
   const [composeData, setComposeData] = useState<any>(null);
   const queryClient = useQueryClient();
 
+  const location = useLocation();
+
   // Fetch Emails
-  const userStr = localStorage.getItem('user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = useMemo(() => {
+    const userStr = localStorage.getItem('user');
+    return userStr ? JSON.parse(userStr) : null;
+  }, [location.pathname]);
+
   const userEmail = user?.email || '';
 
   const { data: emails = [], isLoading } = useQuery({
@@ -342,7 +347,7 @@ export default function App() {
   };
 
   return (
-    <BrowserRouter>
+    <>
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -399,6 +404,6 @@ export default function App() {
         } />
       </Routes>
       <Toaster position="bottom-left" richColors />
-    </BrowserRouter>
+    </>
   );
 }
