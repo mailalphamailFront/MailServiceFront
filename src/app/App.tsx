@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Routes, Route, Navigate, useParams, useSearchParams } from 'react-router';
-import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2 } from 'lucide-react';
+import { BrowserRouter, Routes, Route, Navigate, useParams, useSearchParams, useNavigate } from 'react-router';
+import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2, User } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { EmailListItem } from './components/EmailListItem';
 import { EmailView } from './components/EmailView';
 import { ComposeModal } from './components/ComposeModal';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { Tooltip } from './components/Tooltip';
-import { Email } from './types';
+import { SettingsPage } from './components/SettingsPage';
+import { MOCK_EMAILS, Email } from './types';
 import { toast, Toaster } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mailService } from './api/services/mail.service';
@@ -49,6 +50,7 @@ function Layout({
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const query = searchParams.get('q') || '';
 
   const handleAction = (msg: string) => toast.info(msg);
@@ -92,7 +94,7 @@ function Layout({
 
             <Tooltip text="Settings">
               <button
-                onClick={() => handleAction('Settings: General preferences opened')}
+                onClick={() => navigate('/settings')}
                 className="hidden md:flex p-2 hover:bg-gray-50 rounded-lg text-gray-500 transition-colors"
               >
                 <Settings className="w-5 h-5" />
@@ -159,7 +161,7 @@ function Layout({
         onSend={onSend}
         initialData={composeData}
       />
-    </div>
+    </div >
   );
 }
 
@@ -314,6 +316,7 @@ export default function App() {
 
   const markRead = (_id: string) => {
     // Implement mark read mutation if available in API
+    toast.info('Marked as read');
   };
 
   const sendEmail = (newEmail: Partial<Email>) => {
@@ -339,7 +342,7 @@ export default function App() {
   };
 
   return (
-    <>
+    <BrowserRouter>
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
@@ -372,6 +375,7 @@ export default function App() {
                     />
                   }
                 />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route
                   path="/:folder/:id"
                   element={
@@ -395,6 +399,6 @@ export default function App() {
         } />
       </Routes>
       <Toaster position="bottom-left" richColors />
-    </>
+    </BrowserRouter>
   );
 }
