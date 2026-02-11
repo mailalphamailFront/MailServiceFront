@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Routes, Route, Navigate, useParams, useSearchParams, useNavigate, useLocation } from 'react-router';
-import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2, User } from 'lucide-react';
+import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { EmailListItem } from './components/EmailListItem';
 import { EmailView } from './components/EmailView';
@@ -8,7 +8,7 @@ import { ComposeModal } from './components/ComposeModal';
 import { ProfileDropdown } from './components/ProfileDropdown';
 import { Tooltip } from './components/Tooltip';
 import { SettingsPage } from './components/SettingsPage';
-import { MOCK_EMAILS, Email } from './types';
+import { Email } from './types';
 import { toast, Toaster } from 'sonner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mailService } from './api/services/mail.service';
