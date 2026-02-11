@@ -1,15 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, UserPlus, X, User } from 'lucide-react';
+import { useRef, useEffect } from 'react';
+import { LogOut, UserPlus, User } from 'lucide-react';
+import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 
 interface ProfileDropdownProps {
   isOpen: boolean;
   onClose: () => void;
+  user: any;
 }
 
-export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
+export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -30,6 +33,14 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
     onClose();
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    toast.success('로그아웃 되었습니다.');
+    navigate('/login');
+    onClose();
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -45,21 +56,21 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
           <div className="p-6 bg-gray-50/50 border-b border-gray-100">
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-3">
-                <img 
-                  src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=200" 
-                  alt="Profile" 
+                <img
+                  src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=200"
+                  alt="Profile"
                   className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-sm"
                 />
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">Alex Rivera</h3>
-              <p className="text-sm text-gray-500">alex@mailcloud.io</p>
+              <h3 className="text-lg font-bold text-gray-900">{user?.email?.split('@')[0] || 'User'}</h3>
+              <p className="text-sm text-gray-500">{user?.email || 'Not logged in'}</p>
             </div>
           </div>
 
           {/* Menu Items */}
           <div className="p-2">
-            <button 
+            <button
               onClick={() => handleAction('Profile view requested')}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
             >
@@ -68,7 +79,7 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
               </div>
               <span className="font-medium text-left flex-1">View Profile</span>
             </button>
-            <button 
+            <button
               onClick={() => handleAction('Account switch requested')}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
             >
@@ -81,8 +92,8 @@ export function ProfileDropdown({ isOpen, onClose }: ProfileDropdownProps) {
 
           {/* Footer Actions */}
           <div className="p-2 border-t border-gray-100 bg-gray-50/30">
-            <button 
-              onClick={() => handleAction('Signed out successfully')}
+            <button
+              onClick={handleLogout}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-xl transition-colors"
             >
               <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">

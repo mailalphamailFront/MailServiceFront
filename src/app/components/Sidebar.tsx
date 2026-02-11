@@ -1,15 +1,13 @@
-import React from 'react';
 import { NavLink } from 'react-router';
-import { 
-  Inbox, 
-  Send, 
-  File, 
-  Trash2, 
-  AlertOctagon, 
-  Star, 
+import {
+  Inbox,
+  Send,
+  File,
+  Trash2,
+  AlertOctagon,
+  Star,
   Plus,
   Mail,
-  Settings,
   MoreVertical
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -26,7 +24,7 @@ const navItems = [
   { icon: Trash2, label: 'Trash', path: '/trash', color: 'text-gray-500' },
 ];
 
-export function Sidebar({ onCompose }: { onCompose: () => void }) {
+export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any }) {
   const handleAction = (msg: string) => toast.info(msg);
 
   return (
@@ -63,15 +61,15 @@ export function Sidebar({ onCompose }: { onCompose: () => void }) {
       <div className="p-4 border-t border-gray-100">
         <div className="flex items-center gap-3 px-2 group cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors" onClick={() => handleAction('User settings: Profile & Account preferences')}>
           <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
-            <img 
-              src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=100" 
-              alt="Profile" 
+            <img
+              src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=100"
+              alt="Profile"
               className="w-full h-full object-cover"
             />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">Alex Rivera</p>
-            <p className="text-xs text-gray-500 truncate">alex@mailcloud.io</p>
+            <p className="text-sm font-medium text-gray-900 truncate">{user?.email?.split('@')[0] || 'User'}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email || 'alex@mailcloud.io'}</p>
           </div>
           <Tooltip text="More options">
             <button className="p-1 hover:bg-gray-200 rounded text-gray-400">
