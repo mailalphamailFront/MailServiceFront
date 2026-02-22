@@ -79,6 +79,9 @@ GitHub 레포지토리 페이지에 들어가면
 
 3. 이제 내 브랜치가 최신화되었으니, GitHub로 올림
 -> git push origin [브랜치 이름]
+
+또는 현재 브랜치를 main으로 강제 초기화(대신 내 브랜치 내용과 main 내용이 다른 부분 삭제됨)
+-> git reset --hard origin/main
 ```
 
 ## 다른 사람의 브랜치를 확인하고 싶을 때
