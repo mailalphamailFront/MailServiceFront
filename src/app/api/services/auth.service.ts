@@ -42,5 +42,13 @@ export const authService = {
   confirmVerificationCode: async (email: string, code: string) => {
     const response = await api.post('/api/users/verification/confirm', { email, code });
     return response.data;
-  }
+  },
+
+  // withdraw user account
+  withdraw: async (password: string) => {
+    const response = await api.delete('/api/users/withdraw', {
+    data: { password }
+  });
+  return response.data;
+}
 };

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { User, Bell, Shield, Palette, Globe, HelpCircle, CreditCard, Key, MessageSquare, Folder, Filter, Forward, Lock, ChevronLeft, Mail } from 'lucide-react';
+import { Trash2, User, Bell, Shield, Palette, Globe, HelpCircle, CreditCard, Key, MessageSquare, Folder, Filter, Forward, Lock, ChevronLeft, Mail } from 'lucide-react';
 import { SettingsSidebar } from './SettingsSidebar';
 import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
+import { authService } from '../api/services/auth.service';
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState('home');
@@ -167,6 +168,58 @@ export function SettingsPage() {
                       </div>
                     </div>
                     <button className="text-xs font-bold text-red-600">Revoke</button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Danger Zone: Account Withdrawal */}
+              <div className="mt-12 border-t border-red-100 pt-12">
+                <div className="bg-red-50/30 rounded-2xl border border-red-100 p-8 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4 text-red-600">
+                    <Shield className="w-6 h-6" />
+                    <h3 className="text-lg font-bold">Danger Zone</h3>
+                  </div>
+                  <div className="mb-6">
+                    <h4 className="text-gray-900 font-bold mb-1">Delete Account</h4>
+                    <p className="text-sm text-gray-500">
+                      Permanently remove your account and all of your data. This action is irreversible.
+                    </p>
+                  </div>
+
+                  <div className="max-w-md space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-bold text-gray-700 ml-1">Confirm Password</label>
+                      <input
+                        type="password"
+                        value={userLoginPassword} // 기존 선언된 state 활용
+                        onChange={(e) => setUserLoginPassword(e.target.value)}
+                        placeholder="Enter your password to confirm"
+                        className="w-full p-3.5 bg-white border border-red-100 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                      />
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (!userLoginPassword) {
+                          toast.error("Please enter your password for verification.");
+                          return;
+                        }
+                        if (confirm("Are you absolutely sure you want to delete your account? This cannot be undone.")) {
+                          try {
+                            await authService.withdraw(userLoginPassword); // 추가된 withdraw API 호출
+                            
+                            localStorage.removeItem('token');
+                            localStorage.removeItem('user');
+                            window.location.href = '/login';
+                          } catch (error: any) {
+                            toast.error(error.response?.data?.message || "Failed to delete account.");
+                          }
+                        }
+                      }}
+                      className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                      Delete My Account
+                    </button>
                   </div>
                 </div>
               </div>

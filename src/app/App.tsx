@@ -272,6 +272,7 @@ export default function App() {
     queryKey: ['emails', userEmail],
     queryFn: () => mailService.getMails(userEmail),
     enabled: !!userEmail,
+    retry: false, // 불러오는데 실패하면 재시도 하지 않도록 설정
   });
 
   // Mutations

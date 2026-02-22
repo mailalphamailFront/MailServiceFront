@@ -22,15 +22,20 @@ export const mailService = {
   // Send a new mail
   sendMail: async (emailData: any): Promise<any> => {
     // Map frontend Email type to backend field names
-    const payload = {
-      sender_email: emailData.senderEmail,
-      receiver_email: emailData.to,
-      subject: emailData.subject,
-      content: emailData.content,
-      user_id: emailData.userId // This should be provided
-    };
-    const response = await api.post('/api/emails', payload);
-    return response.data;
+    try {
+      const payload = {
+        sender_email: emailData.senderEmail,
+        receiver_email: emailData.to,
+        subject: emailData.subject,
+        content: emailData.content,
+        user_id: emailData.userId // this should be provided
+      };
+      const response = await api.post('/api/emails', payload);
+      return response.data;
+    } catch (error: any) {
+      console.error("Mail Send Error:", error.response?.data || error.message);
+      throw error;
+    }
   },
 
   // Delete a mail
