@@ -96,3 +96,31 @@ export const MOCK_EMAILS: Email[] = [
     avatar: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=100'
   }
 ];
+
+export interface EmailFolder {
+  folderId: string;
+  displayName: string;
+  type: string;
+  unreadCount: number;
+}
+
+export interface EmailAccount {
+  accountId: number;
+  provider: string;
+  accountEmail: string;
+  folders: EmailFolder[];
+}
+
+export interface EmailAccountsResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: {
+    allInboxes: {
+      name: string;
+      type: string;
+      unreadCount: number;
+    } | null;
+    accounts: EmailAccount[];
+  } | null;
+}

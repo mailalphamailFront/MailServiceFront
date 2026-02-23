@@ -47,5 +47,17 @@ export const mailService = {
   toggleStar: async (id: string, starred: boolean): Promise<Email> => {
     const response = await api.patch(`/api/emails/${id}/star`, { starred });
     return response.data;
+  },
+
+  // Get connected email accounts
+  getConnectedAccounts: async (): Promise<any> => {
+    const response = await api.get('/api/email-accounts');
+    return response.data;
+  },
+
+  // Connect a new email account
+  connectAccount: async (payload: any): Promise<any> => {
+    const response = await api.post('/api/accounts', payload);
+    return response.data;
   }
 };

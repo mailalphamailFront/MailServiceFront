@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mailService } from './api/services/mail.service';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem('token');
@@ -398,7 +399,7 @@ export default function App() {
                     />
                   }
                 />
-                <Route path="*" element={<Navigate to="/inbox" replace />} />
+                <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

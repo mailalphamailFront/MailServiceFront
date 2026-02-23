@@ -2,6 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: '', // Vite proxy will handle the forwarding to https://rokafcoding.com
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
