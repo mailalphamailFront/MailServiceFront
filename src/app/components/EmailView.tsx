@@ -32,13 +32,13 @@ interface EmailViewProps {
 }
 
 export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleRead, onReply, onForward }: EmailViewProps) {
-  const { id, folder = 'inbox' } = useParams();
+  const { id, accountId, folderName = 'INBOX' } = useParams();
   const navigate = useNavigate();
 
   // Get email from passed list to get messageNumber and provider
-  const emailFromList = emails.find(e => e.id === id);
+  const emailFromList = emails.find(e => e.messageNumber?.toString() === id);
 
-  // Fetch Accounts to get accountId
+  // Fetch Accounts to get accountId if not provided in params
   const { data: accountsResponse } = useQuery({
     queryKey: ['accounts'],
     queryFn: () => mailService.getConnectedAccounts(),
@@ -56,7 +56,13 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
 
       if (!account || !emailFromList.messageNumber) return null;
 
-      const folderId = folder.toUpperCase() === 'INBOX' ? 'INBOX' : folder.toUpperCase();
+      // Resolve folderName (type or folderId) to actual folderId
+      let folderId = folderName;
+      const folderByType = account.folders.find(f => f.type === folderName);
+      if (folderByType && folderByType.type !== 'CUSTOM') {
+        folderId = folderByType.folderId;
+      }
+
       return mailService.getMailDetail(emailFromList.messageNumber, account.accountId, folderId);
     },
     enabled: !!id && !!emailFromList && !!accountsResponse,
@@ -131,12 +137,12 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
 
   const handleDelete = () => {
     onDelete(email.id);
-    navigate(`/${folder}`);
+    navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`);
   };
 
   const handleArchive = () => {
     onArchive(email.id);
-    navigate(`/${folder}`);
+    navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`);
   };
 
   const handleAction = (action: string) => {
@@ -148,7 +154,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
       <div className="email-toolbar">
         <div className="flex items-center gap-4">
           <button
-            onClick={() => navigate(`/${folder}`)}
+            onClick={() => navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`)}
             className="p-2 hover:bg-gray-100 rounded-full lg:hidden"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />

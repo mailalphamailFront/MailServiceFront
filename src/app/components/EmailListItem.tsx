@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router';
 import { Star } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isToday, getYear } from 'date-fns';
 import { Email } from '../types';
 import { clsx } from 'clsx';
 import '../styles.css';
@@ -16,15 +16,16 @@ export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItem
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
-  const isActive = id === email.id;
+  const isActive = id === email.messageNumber?.toString();
 
   const handleClick = () => {
     // Navigate to email detail relative to current list view
-    if (location.pathname.endsWith(email.id)) return;
+    if (!email.messageNumber) return;
+    if (id === email.messageNumber.toString()) return;
 
     // If we're already in a detail view of another email, go up one level first
     const basePath = id ? location.pathname.split('/').slice(0, -1).join('/') : location.pathname;
-    navigate(`${basePath}/${email.id}${location.search}`);
+    navigate(`${basePath}/${email.messageNumber}${location.search}`);
 
     if (!email.read) {
       onMarkRead(email.id);
@@ -35,6 +36,18 @@ export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItem
     e.stopPropagation();
     onToggleStar(email.id);
   };
+
+  const date = new Date(email.timestamp);
+  const now = new Date();
+
+  let dateDisplay;
+  if (isToday(date)) {
+    dateDisplay = format(date, 'h:mm a');
+  } else if (getYear(date) !== getYear(now)) {
+    dateDisplay = format(date, 'MMM d, yyyy');
+  } else {
+    dateDisplay = format(date, 'MMM d');
+  }
 
   return (
     <div
@@ -66,7 +79,7 @@ export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItem
               {email.sender}
             </span>
             <span className="text-[10px] text-gray-400 whitespace-nowrap shrink-0">
-              {format(new Date(email.timestamp), 'MMM d')}
+              {dateDisplay}
             </span>
           </div>
 

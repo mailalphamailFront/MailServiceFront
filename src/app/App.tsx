@@ -226,9 +226,11 @@ interface EmailListPageProps {
 
 function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onArchive, onToggleRead, onMarkRead, onReply, onForward }: EmailListPageProps) {
   const location = useLocation();
+  const { folderName } = useParams();
+  const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q')?.toLowerCase() || '';
-  const folder = searchParams.get('folder') || 'INBOX';
+  const folder = folderName || 'INBOX';
 
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
@@ -243,8 +245,24 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onArchive, o
   if (location.pathname.startsWith('/mail/all')) {
     folderTitle = 'All Inboxes';
   } else if (folder) {
-    if (folder.toUpperCase() === 'INBOX') folderTitle = 'Inbox';
-    else {
+    const { accountId: pathAccountId } = useParams();
+    const accountId = pathAccountId ? parseInt(pathAccountId, 10) : null;
+    const accounts = (queryClient.getQueryData(['accounts']) as any)?.data?.accounts || [];
+    const account = accounts.find((a: any) => a.accountId === accountId);
+    const folderData = account?.folders?.find((f: any) => f.type === folder || f.folderId === folder);
+
+    if (folderData && folderData.type !== 'CUSTOM') {
+      switch (folderData.type.toUpperCase()) {
+        case 'INBOX': folderTitle = 'Inbox'; break;
+        case 'SENT': folderTitle = 'Sent'; break;
+        case 'DRAFTS': folderTitle = 'Drafts'; break;
+        case 'TRASH': folderTitle = 'Trash'; break;
+        case 'JUNK':
+        case 'SPAM': folderTitle = 'Spam'; break;
+        case 'STARRED': folderTitle = 'Starred'; break;
+        default: folderTitle = folderData.displayName || folderData.name;
+      }
+    } else {
       folderTitle = folder.split('/').pop() || folder;
       folderTitle = folderTitle.charAt(0).toUpperCase() + folderTitle.slice(1);
     }
@@ -326,13 +344,19 @@ export default function App() {
   const [searchParams] = useSearchParams();
   const pathParts = location.pathname.split('/');
   let currentAccountId: number | undefined | null;
-  let currentFolderId: string | undefined = searchParams.get('folder') || 'INBOX';
+  let currentFolderId: string | undefined = 'INBOX';
 
   if (pathParts[1] === 'mail') {
-    if (pathParts[2] === 'all') {
-      currentAccountId = null;
-    } else {
-      currentAccountId = parseInt(pathParts[2], 10);
+    if (pathParts[2]) {
+      if (pathParts[2] === 'all') {
+        currentAccountId = null;
+      } else {
+        currentAccountId = parseInt(pathParts[2], 10);
+      }
+    }
+
+    if (pathParts[3]) {
+      currentFolderId = decodeURIComponent(pathParts[3]);
     }
   }
 
@@ -346,10 +370,26 @@ export default function App() {
     enabled: !!userEmail,
   });
 
+  // Resolve currentFolderId (URL param) to actual API folderId if it's a type symbol
+  const resolvedFolderId = useMemo(() => {
+    if (!currentFolderId || !accountsResponse?.data?.accounts) return currentFolderId;
+    if (currentAccountId === null) return currentFolderId;
+
+    const account = accountsResponse.data.accounts.find(a => a.accountId === currentAccountId);
+    if (!account) return currentFolderId;
+
+    // Check if the current ID matches any folder's type
+    const folderByType = account.folders.find(f => f.type === currentFolderId);
+    if (folderByType && folderByType.type !== 'CUSTOM') {
+      return folderByType.folderId;
+    }
+    return currentFolderId;
+  }, [currentFolderId, currentAccountId, accountsResponse]);
+
   const { data: emails = [], isLoading } = useQuery({
-    queryKey: ['emails', currentFolderId, currentAccountId, page, searchQuery],
-    queryFn: () => mailService.loadEmails(currentFolderId!, currentAccountId!, page, searchQuery),
-    enabled: !!userEmail && !!currentFolderId,
+    queryKey: ['emails', resolvedFolderId, currentAccountId, page, searchQuery],
+    queryFn: () => mailService.loadEmails(resolvedFolderId!, currentAccountId!, page, searchQuery),
+    enabled: !!userEmail && !!resolvedFolderId,
     retry: false,
   });
 
@@ -382,7 +422,7 @@ export default function App() {
     mutationFn: ({ messageNumber, accountId, folderId }: { messageNumber: number, accountId: number, folderId: string }) =>
       mailService.markAsRead(messageNumber, accountId, folderId),
     onMutate: async ({ messageNumber }) => {
-      const queryKey = ['emails', currentFolderId, currentAccountId, page, searchQuery];
+      const queryKey = ['emails', resolvedFolderId, currentAccountId, page, searchQuery];
       await queryClient.cancelQueries({ queryKey });
       const previousEmails = queryClient.getQueryData<Email[]>(queryKey);
       queryClient.setQueryData<Email[]>(queryKey, (old) =>
@@ -394,7 +434,7 @@ export default function App() {
     },
     onError: (_err, _variables, context) => {
       if (context?.previousEmails) {
-        queryClient.setQueryData(['emails', currentFolderId, currentAccountId, page, searchQuery], context.previousEmails);
+        queryClient.setQueryData(['emails', resolvedFolderId, currentAccountId, page, searchQuery], context.previousEmails);
       }
     },
   });
@@ -421,7 +461,7 @@ export default function App() {
     if (email && email.messageNumber) {
       // Use email's accountId or fallback to currentAccountId
       const accountId = email.accountId || currentAccountId;
-      const folderId = currentFolderId || 'INBOX';
+      const folderId = resolvedFolderId || 'INBOX';
 
       if (accountId) {
         markReadMutation.mutate({
@@ -475,10 +515,10 @@ export default function App() {
               accounts={accountsResponse?.data?.accounts || []}
             >
               <Routes>
-                <Route path="/" element={<Navigate to="/mail/all" replace />} />
-                <Route path="/inbox" element={<Navigate to="/mail/all" replace />} />
+                <Route path="/" element={<Navigate to="/mail/all/INBOX" replace />} />
+                <Route path="/inbox" element={<Navigate to="/mail/all/INBOX" replace />} />
                 <Route
-                  path="/mail/all"
+                  path="/mail/:accountId/:folderName"
                   element={
                     <EmailListPage
                       emails={emails}
@@ -494,39 +534,7 @@ export default function App() {
                   }
                 />
                 <Route
-                  path="/mail/all/:id"
-                  element={
-                    <EmailListPage
-                      emails={emails}
-                      isLoading={isLoading}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteEmail}
-                      onArchive={archiveEmail}
-                      onToggleRead={toggleRead}
-                      onMarkRead={markRead}
-                      onReply={handleReply}
-                      onForward={handleForward}
-                    />
-                  }
-                />
-                <Route
-                  path="/mail/:accountId"
-                  element={
-                    <EmailListPage
-                      emails={emails}
-                      isLoading={isLoading}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteEmail}
-                      onArchive={archiveEmail}
-                      onToggleRead={toggleRead}
-                      onMarkRead={markRead}
-                      onReply={handleReply}
-                      onForward={handleForward}
-                    />
-                  }
-                />
-                <Route
-                  path="/mail/:accountId/:id"
+                  path="/mail/:accountId/:folderName/:id"
                   element={
                     <EmailListPage
                       emails={emails}

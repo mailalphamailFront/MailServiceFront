@@ -35,7 +35,7 @@ export const mailService = {
           senderEmail: '', // API does not provide senderEmail in this list endpoint
           subject: m.subject,
           content: '', // API does not provide content in list endpoint
-          timestamp: m.receivedAt,
+          timestamp: m.receivedAt.endsWith('Z') ? m.receivedAt : `${m.receivedAt}Z`,
           read: m.read,
           starred: false,
           folder: folderId,
@@ -68,7 +68,7 @@ export const mailService = {
           subject: detail.subject,
           content: detail.body.content,
           contentType: detail.body.contentType,
-          timestamp: detail.receivedAt,
+          timestamp: detail.receivedAt.endsWith('Z') ? detail.receivedAt : `${detail.receivedAt}Z`,
           read: detail.read,
           starred: false,
           folder: (detail.folderId === 'INBOX' ? 'inbox' : detail.folderId.toLowerCase()) as any,

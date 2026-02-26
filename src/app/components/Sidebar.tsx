@@ -60,6 +60,20 @@ const getFolderColor = (type: string) => {
   }
 };
 
+const getUnifiedFolderName = (type: string, fallback: string) => {
+  if (type === 'CUSTOM') return fallback;
+  switch (type.toUpperCase()) {
+    case 'INBOX': return 'Inbox';
+    case 'SENT': return 'Sent';
+    case 'DRAFTS': return 'Drafts';
+    case 'TRASH': return 'Trash';
+    case 'JUNK':
+    case 'SPAM': return 'Spam';
+    case 'STARRED': return 'Starred';
+    default: return fallback;
+  }
+};
+
 export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any }) {
   const handleAction = (msg: string) => toast.info(msg);
   const location = useLocation();
@@ -96,10 +110,10 @@ export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any 
         {allInboxes && (
           <div className="space-y-1">
             <NavLink
-              to="/mail/all"
+              to="/mail/all/INBOX"
               className={({ isActive }) => clsx(
                 "nav-link-base group",
-                (isActive || location.pathname.startsWith('/mail/all') || location.pathname === '/inbox') && "nav-link-active"
+                (isActive || location.pathname.startsWith('/mail/all/INBOX') || location.pathname === '/inbox') && "nav-link-active"
               )}
             >
               <Inbox className={clsx("w-5 h-5 text-blue-600")} />
@@ -127,27 +141,25 @@ export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any 
               const Icon = getFolderIcon(folder.type);
               const colorClass = getFolderColor(folder.type);
 
-              const path = `/mail/${account.accountId}`;
-              const search = `?folder=${encodeURIComponent(folder.folderId)}`;
+              const folderParam = folder.type !== 'CUSTOM' ? folder.type : folder.folderId;
+              const path = `/mail/${account.accountId}/${encodeURIComponent(folderParam)}`;
 
               return (
                 <NavLink
                   key={`${account.accountId}-${folder.folderId}`}
-                  to={`${path}${search}`}
-                  className={() => {
-                    // Custom active check for query params
-                    const isFolderActive = location.pathname === path &&
-                      new URLSearchParams(location.search).get('folder') === folder.folderId;
-
+                  to={path}
+                  className={({ isActive }) => {
                     return clsx(
                       "nav-link-base group py-2",
-                      isFolderActive && "nav-link-active"
+                      isActive && "nav-link-active"
                     );
                   }}
                 >
                   <Icon className={clsx("w-4 h-4", colorClass)} />
                   <div className="flex-1 flex items-center justify-between min-w-0">
-                    <span className="truncate text-sm">{folder.displayName || folder.name}</span>
+                    <span className="truncate text-sm">
+                      {getUnifiedFolderName(folder.type, folder.displayName || folder.name)}
+                    </span>
                     {folder.unreadCount > 0 && (
                       <span className="text-[10px] font-medium text-gray-500">
                         {folder.unreadCount}
