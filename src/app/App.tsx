@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Routes, Route, Navigate, useParams, useSearchParams, useNavigate, useLocation } from 'react-router';
-import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2 } from 'lucide-react';
+import { Search, Bell, Settings, HelpCircle, Menu, LayoutGrid, Loader2, X, ArrowRight } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { EmailListItem } from './components/EmailListItem';
 import { EmailView } from './components/EmailView';
@@ -39,7 +39,8 @@ function Layout({
   setIsComposeOpen,
   composeData,
   setComposeData,
-  user
+  user,
+  accounts
 }: {
   children: React.ReactNode,
   onSend: (email: Partial<Email>) => void,
@@ -47,12 +48,33 @@ function Layout({
   setIsComposeOpen: (open: boolean) => void,
   composeData: any,
   setComposeData: (data: any) => void,
-  user: any
+  user: any,
+  accounts: any[]
 }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
+  const [localQuery, setLocalQuery] = useState(query);
+
+  // Sync local query if search params change externally (e.g. navigation)
+  React.useEffect(() => {
+    setLocalQuery(query);
+  }, [query]);
+
+  const handleSearch = () => {
+    if (localQuery.trim()) {
+      setSearchParams({ q: localQuery });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const handleClear = () => {
+    setLocalQuery('');
+    setSearchParams({});
+  };
 
   const handleAction = (msg: string) => toast.info(msg);
 
@@ -69,16 +91,39 @@ function Layout({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Topbar */}
         <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shrink-0 z-20">
-          <div className="flex-1 max-w-2xl">
-            <div className="relative group">
+          <div className="flex-1 max-w-2xl flex items-center">
+            <div className="relative group flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
               <input
                 type="text"
                 placeholder="Search messages, people, or files..."
-                value={query}
-                onChange={(e) => setSearchParams({ q: e.target.value })}
-                className="w-full bg-gray-50 border-none rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition-all"
+                value={localQuery}
+                onFocus={() => setIsSearchFocused(true)}
+                onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+                onChange={(e) => setLocalQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full bg-gray-50 border-none rounded-xl py-2 pl-10 pr-20 text-sm focus:ring-2 focus:ring-blue-100 focus:bg-white outline-none transition-all"
               />
+              {(isSearchFocused || localQuery) && (
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 animate-in fade-in zoom-in duration-200">
+                  {localQuery && (
+                    <button
+                      onClick={handleClear}
+                      className="p-1 hover:bg-gray-100 rounded-md text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSearch}
+                    className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    title="Run search"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -161,6 +206,7 @@ function Layout({
         onClose={() => setIsComposeOpen(false)}
         onSend={onSend}
         initialData={composeData}
+        accounts={accounts}
       />
     </div >
   );
@@ -179,22 +225,30 @@ interface EmailListPageProps {
 }
 
 function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onArchive, onToggleRead, onMarkRead, onReply, onForward }: EmailListPageProps) {
-  const { folder = 'inbox' } = useParams();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q')?.toLowerCase() || '';
+  const folder = searchParams.get('folder') || 'INBOX';
 
   const filteredEmails = useMemo(() => {
     return emails.filter(email => {
-      const matchesFolder = folder === 'starred' ? email.starred : email.folder === folder;
       const matchesSearch = !query ||
         email.sender.toLowerCase().includes(query) ||
-        email.subject.toLowerCase().includes(query) ||
-        email.content.toLowerCase().includes(query);
-      return matchesFolder && matchesSearch;
+        email.subject.toLowerCase().includes(query);
+      return matchesSearch;
     });
-  }, [emails, folder, query]);
+  }, [emails, query]);
 
-  const folderTitle = folder.charAt(0).toUpperCase() + folder.slice(1);
+  let folderTitle = 'Messages';
+  if (location.pathname.startsWith('/mail/all')) {
+    folderTitle = 'All Inboxes';
+  } else if (folder) {
+    if (folder.toUpperCase() === 'INBOX') folderTitle = 'Inbox';
+    else {
+      folderTitle = folder.split('/').pop() || folder;
+      folderTitle = folderTitle.charAt(0).toUpperCase() + folderTitle.slice(1);
+    }
+  }
 
   return (
     <>
@@ -221,7 +275,6 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onArchive, o
               <EmailListItem
                 key={email.id}
                 email={email}
-                folder={folder}
                 onToggleStar={() => onToggleStar(email.id, !email.starred)}
                 onMarkRead={onMarkRead}
               />
@@ -269,11 +322,35 @@ export default function App() {
 
   const userEmail = user?.email || '';
 
-  const { data: emails = [], isLoading } = useQuery({
-    queryKey: ['emails', userEmail],
-    queryFn: () => mailService.getMails(userEmail),
+  // Parse location to get folderId and accountId
+  const [searchParams] = useSearchParams();
+  const pathParts = location.pathname.split('/');
+  let currentAccountId: number | undefined | null;
+  let currentFolderId: string | undefined = searchParams.get('folder') || 'INBOX';
+
+  if (pathParts[1] === 'mail') {
+    if (pathParts[2] === 'all') {
+      currentAccountId = null;
+    } else {
+      currentAccountId = parseInt(pathParts[2], 10);
+    }
+  }
+
+  const page = parseInt(searchParams.get('page') || '0', 10);
+  const searchQuery = searchParams.get('q') || '';
+
+  // Fetch Accounts
+  const { data: accountsResponse } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => mailService.getConnectedAccounts(),
     enabled: !!userEmail,
-    retry: false, // 불러오는데 실패하면 재시도 하지 않도록 설정
+  });
+
+  const { data: emails = [], isLoading } = useQuery({
+    queryKey: ['emails', currentFolderId, currentAccountId, page, searchQuery],
+    queryFn: () => mailService.loadEmails(currentFolderId!, currentAccountId!, page, searchQuery),
+    enabled: !!userEmail && !!currentFolderId,
+    retry: false,
   });
 
   // Mutations
@@ -301,6 +378,27 @@ export default function App() {
     },
   });
 
+  const markReadMutation = useMutation({
+    mutationFn: ({ messageNumber, accountId, folderId }: { messageNumber: number, accountId: number, folderId: string }) =>
+      mailService.markAsRead(messageNumber, accountId, folderId),
+    onMutate: async ({ messageNumber }) => {
+      const queryKey = ['emails', currentFolderId, currentAccountId, page, searchQuery];
+      await queryClient.cancelQueries({ queryKey });
+      const previousEmails = queryClient.getQueryData<Email[]>(queryKey);
+      queryClient.setQueryData<Email[]>(queryKey, (old) =>
+        old?.map((email) =>
+          email.messageNumber === messageNumber ? { ...email, read: true } : email
+        )
+      );
+      return { previousEmails };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousEmails) {
+        queryClient.setQueryData(['emails', currentFolderId, currentAccountId, page, searchQuery], context.previousEmails);
+      }
+    },
+  });
+
   const toggleStar = (id: string, starred: boolean) => {
     starMutation.mutate({ id, starred });
   };
@@ -310,20 +408,29 @@ export default function App() {
   };
 
   const archiveEmail = (id: string) => {
-    // In many systems, archive is just moving to a specific folder or 'trash'
-    // For now, let's treat it as a delete (move to trash)
     deleteMutation.mutate(id);
     toast.success('Conversation archived');
   };
 
   const toggleRead = (_id: string) => {
-    // Implement read toggle mutation if available in API
     toast.info('Read status updated');
   };
 
-  const markRead = (_id: string) => {
-    // Implement mark read mutation if available in API
-    toast.info('Marked as read');
+  const markRead = (id: string) => {
+    const email = emails.find(e => e.id === id);
+    if (email && email.messageNumber) {
+      // Use email's accountId or fallback to currentAccountId
+      const accountId = email.accountId || currentAccountId;
+      const folderId = currentFolderId || 'INBOX';
+
+      if (accountId) {
+        markReadMutation.mutate({
+          messageNumber: email.messageNumber,
+          accountId: accountId,
+          folderId: folderId
+        });
+      }
+    }
   };
 
   const sendEmail = (newEmail: Partial<Email>) => {
@@ -334,7 +441,8 @@ export default function App() {
     setComposeData({
       to: email.senderEmail,
       subject: `Re: ${email.subject}`,
-      content: `\n\n--- On ${new Date(email.timestamp).toLocaleString()}, ${email.sender} wrote: ---\n> ${email.content}`
+      content: `\n\n--- On ${new Date(email.timestamp).toLocaleString()}, ${email.sender} wrote: ---\n> ${email.content}`,
+      accountId: email.accountId || currentAccountId
     });
     setIsComposeOpen(true);
   };
@@ -343,7 +451,8 @@ export default function App() {
     setComposeData({
       to: '',
       subject: `Fwd: ${email.subject}`,
-      content: `\n\n--- Forwarded message ---\nFrom: ${email.sender} <${email.senderEmail}>\nDate: ${new Date(email.timestamp).toLocaleString()}\nSubject: ${email.subject}\n\n${email.content}`
+      content: `\n\n--- Forwarded message ---\nFrom: ${email.sender} <${email.senderEmail}>\nDate: ${new Date(email.timestamp).toLocaleString()}\nSubject: ${email.subject}\n\n${email.content}`,
+      accountId: email.accountId || currentAccountId
     });
     setIsComposeOpen(true);
   };
@@ -363,11 +472,61 @@ export default function App() {
               composeData={composeData}
               setComposeData={setComposeData}
               user={user}
+              accounts={accountsResponse?.data?.accounts || []}
             >
               <Routes>
-                <Route path="/" element={<Navigate to="/inbox" replace />} />
+                <Route path="/" element={<Navigate to="/mail/all" replace />} />
+                <Route path="/inbox" element={<Navigate to="/mail/all" replace />} />
                 <Route
-                  path="/:folder"
+                  path="/mail/all"
+                  element={
+                    <EmailListPage
+                      emails={emails}
+                      isLoading={isLoading}
+                      onToggleStar={toggleStar}
+                      onDelete={deleteEmail}
+                      onArchive={archiveEmail}
+                      onToggleRead={toggleRead}
+                      onMarkRead={markRead}
+                      onReply={handleReply}
+                      onForward={handleForward}
+                    />
+                  }
+                />
+                <Route
+                  path="/mail/all/:id"
+                  element={
+                    <EmailListPage
+                      emails={emails}
+                      isLoading={isLoading}
+                      onToggleStar={toggleStar}
+                      onDelete={deleteEmail}
+                      onArchive={archiveEmail}
+                      onToggleRead={toggleRead}
+                      onMarkRead={markRead}
+                      onReply={handleReply}
+                      onForward={handleForward}
+                    />
+                  }
+                />
+                <Route
+                  path="/mail/:accountId"
+                  element={
+                    <EmailListPage
+                      emails={emails}
+                      isLoading={isLoading}
+                      onToggleStar={toggleStar}
+                      onDelete={deleteEmail}
+                      onArchive={archiveEmail}
+                      onToggleRead={toggleRead}
+                      onMarkRead={markRead}
+                      onReply={handleReply}
+                      onForward={handleForward}
+                    />
+                  }
+                />
+                <Route
+                  path="/mail/:accountId/:id"
                   element={
                     <EmailListPage
                       emails={emails}
@@ -383,22 +542,6 @@ export default function App() {
                   }
                 />
                 <Route path="/settings" element={<SettingsPage />} />
-                <Route
-                  path="/:folder/:id"
-                  element={
-                    <EmailListPage
-                      emails={emails}
-                      isLoading={isLoading}
-                      onToggleStar={toggleStar}
-                      onDelete={deleteEmail}
-                      onArchive={archiveEmail}
-                      onToggleRead={toggleRead}
-                      onMarkRead={markRead}
-                      onReply={handleReply}
-                      onForward={handleForward}
-                    />
-                  }
-                />
                 <Route path="*" element={<NotFoundPage />} />
               </Routes>
             </Layout>

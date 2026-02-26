@@ -1,37 +1,57 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
-export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
-  assetsInclude: ['**/*.svg', '**/*.csv'],
-  server: {
-    proxy: {
-      '/auth': {
-        target: 'https://rokafcoding.com',
-        changeOrigin: true,
-        secure: false,
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const target = env.API_URL
+
+  return {
+    plugins: [
+      react(),
+      tailwindcss(),
+    ],
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './src'),
       },
-      '/api': {
-        target: 'https://rokafcoding.com',
-        changeOrigin: true,
-        secure: false,
-        headers: {
-          Referer: 'https://rokafcoding.com',
-          Origin: 'https://rokafcoding.com',
+    },
+    assetsInclude: ['**/*.svg', '**/*.csv'],
+    server: {
+      proxy: {
+        '/auth': {
+          target: target,
+          changeOrigin: true,
+          secure: false,
         },
-        // The backend expects /api/accounts, so we don't need to rewrite the path if the frontend requests /api/accounts
-        rewrite: (path) => path,
+        '/api': {
+          target: target,
+          changeOrigin: true,
+          secure: false,
+          headers: {
+            Referer: target,
+            Origin: target,
+          },
+          rewrite: (path) => path,
+        },
+        // Added proxy for general assets if they are relative
+        '/assets': {
+          target: target,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/media': {
+          target: target,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/static': {
+          target: target,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
-  },
+  }
 })

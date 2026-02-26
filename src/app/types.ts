@@ -1,14 +1,27 @@
+export interface Receiver {
+  name: string;
+  email: string;
+}
+
 export interface Email {
   id: string;
+  messageNumber?: number;
+  provider?: string;
   sender: string;
   senderEmail: string;
   subject: string;
   content: string;
+  contentType?: string;
   timestamp: string;
   read: boolean;
   starred: boolean;
-  folder: 'inbox' | 'sent' | 'drafts' | 'trash' | 'spam';
+  folder: string;
+  folderId?: string;
   avatar?: string;
+  attachments?: any[];
+  receivers?: Receiver[];
+  to?: string;
+  accountId?: number;
 }
 
 export const MOCK_EMAILS: Email[] = [
@@ -99,7 +112,8 @@ export const MOCK_EMAILS: Email[] = [
 
 export interface EmailFolder {
   folderId: string;
-  displayName: string;
+  name: string;
+  displayName?: string;
   type: string;
   unreadCount: number;
 }
@@ -123,4 +137,49 @@ export interface EmailAccountsResponse {
     } | null;
     accounts: EmailAccount[];
   } | null;
+}
+
+export interface MailData {
+  subject: string;
+  sender: string;
+  receivedAt: string;
+  provider: string;
+  messageNumber: number;
+  read: boolean;
+}
+
+export interface LoadMailResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: MailData[];
+}
+
+export interface MailDetailData {
+  accountId: number;
+  folderId: string;
+  messageNumber: number;
+  subject: string;
+  from: {
+    name: string;
+    email: string;
+  };
+  to: {
+    name: string;
+    email: string;
+  }[];
+  receivedAt: string;
+  read: boolean;
+  body: {
+    contentType: string;
+    content: string;
+  };
+  attachments: any[];
+}
+
+export interface MailDetailResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: MailDetailData;
 }

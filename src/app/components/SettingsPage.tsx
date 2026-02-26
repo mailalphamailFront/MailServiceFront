@@ -36,7 +36,7 @@ export function SettingsPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: emailAccountsData, isLoading: isLoadingAccounts } = useQuery<EmailAccountsResponse>({
+  const { data: emailAccountsData, isLoading: isLoadingAccounts, isFetching: isFetchingAccounts } = useQuery<EmailAccountsResponse>({
     queryKey: ["connectedAccounts"],
     queryFn: () => mailService.getConnectedAccounts(),
     enabled: activeTab === "services",
@@ -66,11 +66,15 @@ export function SettingsPage() {
       console.log("Account connected successfully:", response.data);
       toast.success("Account connected successfully!", { id: toastId });
 
-      queryClient.invalidateQueries({ queryKey: ["connectedAccounts"] });
       setSelectedService(null);
       setEmail("");
       setPassword("");
       setUserLoginPassword("");
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["connectedAccounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["emails"] }),
+      ]);
     } catch (error: any) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.error("Connection error:", error);
@@ -92,6 +96,32 @@ export function SettingsPage() {
       toast.error(errorMessage, { id: toastId });
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleDisconnect = async (accountId: number) => {
+    if (!confirm("Are you sure you want to disconnect this account?")) {
+      return;
+    }
+
+    const toastId = toast.loading("Disconnecting account...");
+    try {
+      await mailService.disconnectAccount(accountId);
+      toast.success("Account disconnected successfully!", { id: toastId });
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["connectedAccounts"] }),
+        queryClient.invalidateQueries({ queryKey: ["emails"] }),
+      ]);
+
+      setSelectedService(null);
+    } catch (error: any) {
+      console.error("Disconnect error:", error);
+      let errorMessage = "Failed to disconnect account";
+      if (axios.isAxiosError(error)) {
+        errorMessage = error.response?.data?.message || error.message;
+      }
+      toast.error(errorMessage, { id: toastId });
     }
   };
 
@@ -336,19 +366,7 @@ export function SettingsPage() {
             logo: (
               <svg className="w-8 h-8" viewBox="0 0 24 24">
                 <path
-                  d="M22.5 12c0-.83-.07-1.63-.2-2.4H12v4.54h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.22-4.74 3.22-8.22z"
-                  fill="#4285F4"
-                />
-                <path
-                  d="M12 22.5c2.84 0 5.22-.94 6.96-2.54l-3.57-2.77c-.99.66-2.23 1.06-3.39 1.06-2.61 0-4.83-1.77-5.61-4.15H2.76v2.85A10.5 10.5 0 0 0 12 22.5z"
-                  fill="#34A853"
-                />
-                <path
-                  d="M6.39 14.1c-.2-.6-.31-1.24-.31-1.9s.11-1.3.31-1.9V7.45H2.76A10.47 10.47 0 0 0 1.5 12.2c0 1.74.43 3.39 1.26 4.75l3.63-2.85z"
-                  fill="#FBBC05"
-                />
-                <path
-                  d="M12 5.91c1.55 0 2.94.53 4.03 1.58l3.02-3.02C17.22 2.76 14.84 1.8 12 1.8 7.37 1.8 3.42 4.46 1.5 8.35l3.63 2.85c.78-2.38 3-4.15 5.61-4.15z"
+                  d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.33l-9 6.75-9-6.75V21H1.5C.65 21 0 20.35 0 19.5v-15c0-.85.65-1.5 1.5-1.5H2l10 7.5L22 3h.5c.85 0 1.5.65 1.5 1.5z"
                   fill="#EA4335"
                 />
               </svg>
@@ -364,14 +382,14 @@ export function SettingsPage() {
             logo: (
               <svg className="w-8 h-8" viewBox="0 0 24 24">
                 <path
-                  d="M21 4.5V19.5C21 20.3284 20.3284 21 19.5 21H7.5C6.67157 21 6 20.3284 6 19.5V4.5C6 3.67157 6.67157 3 7.5 3H19.5C20.3284 3 21 3.67157 21 4.5Z"
+                  d="M21 4.5v15c0 .828-.672 1.5-1.5 1.5h-10C8.672 21 8 20.328 8 19.5v-15C8 3.672 8.672 3 9.5 3h10c.828 0 1.5.672 1.5 1.5z"
                   fill="#0072C6"
                 />
                 <path
-                  d="M1.5 7.5V16.5C1.5 17.3284 2.17157 18 3 18H10.5C11.3284 18 12 17.3284 12 16.5V7.5C12 6.67157 11.3284 6 10.5 6H3C2.17157 6 1.5 6.67157 1.5 7.5Z"
+                  d="M1.5 7.5v9c0 .828.672 1.5 1.5 1.5h7.5c.828 0 1.5-.672 1.5-1.5v-9C12 6.672 11.328 6 10.5 6H3c-.828 0-1.5.672-1.5 1.5z"
                   fill="#0072C6"
                 />
-                <path d="M4.5 9H9V15H4.5V9Z" fill="white" />
+                <path d="M4.5 9h4.5v6H4.5V9z" fill="#fff" />
               </svg>
             ),
           },
@@ -383,7 +401,7 @@ export function SettingsPage() {
             bg: "hover:bg-gray-50",
             border: "hover:border-gray-300",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#007AFF">
                 <path d="M17.5 19c-1.5 0-2.8-.7-3.7-1.8-1 .8-2.2 1.3-3.6 1.3-3 0-5.5-2.5-5.5-5.5 0-2.3 1.5-4.3 3.6-5.1-.1-.3-.1-.6-.1-.9 0-3 2.5-5.5 5.5-5.5 1.8 0 3.4.9 4.4 2.3.8-.4 1.7-.6 2.6-.6 2.8 0 5 2.2 5 5 0 .2 0 .4-.1.6 1.2.9 2 2.4 2 4.1 0 2.9-2.2 5.3-5.1 5.4v0z" />
               </svg>
             ),
@@ -396,9 +414,12 @@ export function SettingsPage() {
             bg: "hover:bg-[#03C75A]/5",
             border: "hover:border-[#03C75A]/20",
             logo: (
-              <div className="w-8 h-8 bg-[#03C75A] rounded-md flex items-center justify-center text-white text-[14px] font-black italic shadow-inner">
-                N
-              </div>
+              <svg className="w-8 h-8" viewBox="0 0 24 24">
+                <path
+                  d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"
+                  fill="#03C75A"
+                />
+              </svg>
             ),
           },
           {
@@ -409,9 +430,12 @@ export function SettingsPage() {
             bg: "hover:bg-[#3E7FFF]/5",
             border: "hover:border-[#3E7FFF]/20",
             logo: (
-              <div className="w-8 h-8 bg-[#3E7FFF] rounded-md flex items-center justify-center text-white text-[14px] font-black shadow-inner">
-                D
-              </div>
+              <svg className="w-8 h-8" viewBox="0 0 24 24">
+                <path
+                  d="M3.208 4h3.704l1.624 4.472L10.168 4h3.704l-3.328 8.04L13.88 20h-3.72l-1.632-4.524L6.904 20H3.184l3.352-8.04-3.328-7.96zM15.4 14.5c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
+                  fill="#3E7FFF"
+                />
+              </svg>
             ),
           },
           {
@@ -422,9 +446,12 @@ export function SettingsPage() {
             bg: "hover:bg-[#6001D2]/5",
             border: "hover:border-[#6001D2]/20",
             logo: (
-              <div className="w-8 h-8 bg-[#6001D2] rounded-md flex items-center justify-center text-white text-[14px] font-black italic shadow-inner">
-                Y!
-              </div>
+              <svg className="w-8 h-8" viewBox="0 0 24 24">
+                <path
+                  d="M10.375 12.016L6.96 4h3.69l1.64 4.53L13.91 4h3.69l-3.415 8.016V18h-3.81v-5.984zM18.17 14.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"
+                  fill="#6001D2"
+                />
+              </svg>
             ),
           },
         ];
@@ -467,9 +494,7 @@ export function SettingsPage() {
                   </div>
 
                   <button
-                    onClick={() => {
-                      alert("The disconnect feature is coming soon!");
-                    }}
+                    onClick={() => handleDisconnect(connectedAccount.accountId)}
                     className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 border border-red-100 transition-all flex items-center justify-center gap-2"
                   >
                     Disconnect Account
@@ -643,15 +668,19 @@ export function SettingsPage() {
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {isLoadingAccounts ? (
+              {(isLoadingAccounts || (isFetchingAccounts && !emailAccountsData)) ? (
                 <div className="col-span-full flex justify-center py-12">
                   <div className="w-8 h-8 border-4 border-blue-600/30 border-t-blue-600 rounded-full animate-spin"></div>
                 </div>
               ) : (
                 services.map((service) => {
-                  const isConnected = connectedAccounts.some(
+                  const account = connectedAccounts.find(
                     (acc) => acc.provider.toLowerCase() === service.id.toLowerCase()
                   );
+                  const isConnected = !!account;
+                  const inboxFolder = account?.folders?.find(f => f.type === 'INBOX');
+                  const unreadCount = inboxFolder?.unreadCount || 0;
+
                   return (
                     <button
                       key={service.id}
@@ -662,16 +691,26 @@ export function SettingsPage() {
                         } hover:shadow-lg active:scale-[0.98] relative`}
                     >
                       {isConnected && (
-                        <div className="absolute top-3 right-3 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm ring-2 ring-white"></div>
+                        <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                          {unreadCount > 0 && (
+                            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] shadow-sm">
+                              {unreadCount}
+                            </span>
+                          )}
+                          <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse shadow-sm ring-2 ring-white"></div>
+                        </div>
                       )}
                       <div className="mb-4 transform group-hover:scale-110 transition-transform">
                         {service.logo}
                       </div>
-                      <span className="text-sm font-bold text-gray-900">
+                      <span className="text-sm font-bold text-gray-900 truncate w-full px-2 text-center">
                         {isConnected
-                          ? "Connected"
+                          ? account.accountEmail
                           : `Sign in with ${service.name}`}
                       </span>
+                      {isConnected && (
+                        <span className="text-[10px] text-gray-400 mt-1 font-medium">Connected</span>
+                      )}
                     </button>
                   );
                 })

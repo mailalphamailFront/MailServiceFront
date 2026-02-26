@@ -35,3 +35,5 @@ logs/
 
 # TypeScript
 tsconfig.tsbuildinfo
+
+temp_files/
