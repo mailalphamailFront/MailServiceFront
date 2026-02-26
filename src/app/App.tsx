@@ -163,18 +163,14 @@ function Layout({
               <Tooltip text="Account Settings">
                 <button
                   onClick={() => setIsProfileOpen(!isProfileOpen)}
-                  className="flex items-center gap-2 p-1 pr-3 hover:bg-gray-50 rounded-full transition-all border border-transparent hover:border-gray-100"
+                  className="flex items-center p-1 hover:bg-gray-50 rounded-full transition-all border border-transparent hover:border-gray-100"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200">
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-gray-200 bg-gray-100">
                     <img
-                      src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=100"
+                      src="/images/ig_default.svg"
                       alt="Profile"
                       className="w-full h-full object-cover"
                     />
-                  </div>
-                  <div className="hidden sm:block text-left">
-                    <p className="text-xs font-bold text-gray-900 leading-none">{user?.email?.split('@')[0] || 'User'}</p>
-                    <p className="text-[10px] text-gray-500 leading-tight">{user?.email || 'Not logged in'}</p>
                   </div>
                 </button>
               </Tooltip>

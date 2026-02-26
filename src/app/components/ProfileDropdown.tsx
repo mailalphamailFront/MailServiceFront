@@ -57,7 +57,7 @@ export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps)
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-3">
                 <img
-                  src="https://images.unsplash.com/photo-1701463387028-3947648f1337?q=80&w=200"
+                  src="/images/ig_default.svg"
                   alt="Profile"
                   className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-sm"
                 />

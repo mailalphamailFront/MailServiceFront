@@ -1,24 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  Trash2, // Keep if you're using it in the UI
-  User,
-  Bell,
+  Trash2,
   Shield,
-  Palette,
   Globe,
-  HelpCircle,
-  CreditCard,
-  Key,
-  MessageSquare,
-  Folder,
-  Filter,
-  Forward,
-  Lock,
   ChevronLeft,
-  Mail
 } from 'lucide-react';
 import { SettingsSidebar } from './SettingsSidebar';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 import { toast } from 'sonner';
 
 // Services & Hooks
@@ -135,8 +123,12 @@ export function SettingsPage() {
             </h2>
             <div className="bg-white rounded-2xl border border-gray-100 p-8 space-y-6 shadow-sm">
               <div className="flex items-center gap-6">
-                <div className="w-24 h-24 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                  <User className="w-12 h-12" />
+                <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm">
+                  <img
+                    src="/images/ig_default.svg"
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">
