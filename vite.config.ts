@@ -19,6 +19,7 @@ export default defineConfig(({ mode }) => {
     },
     assetsInclude: ['**/*.svg', '**/*.csv'],
     server: {
+      allowedHosts: [new URL(target).hostname],
       proxy: {
         '/auth': {
           target: target,
