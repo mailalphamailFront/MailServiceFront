@@ -14,7 +14,7 @@ env:
   ECR_REPOSITORY: front/react
   # 프론트 Dockerfile 위치 (프로젝트에 맞게 수정)
   FRONTEND_DIR: .
-  DOCKERFILE_PATH: ./configs/Dockerfile
+  DOCKERFILE_PATH: ./configs/Dockerfile.dev
 
 jobs:
   build-and-push:
