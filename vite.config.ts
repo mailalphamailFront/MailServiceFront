@@ -17,17 +17,17 @@ export default defineConfig({
   server: {
     proxy: {
       '/auth': {
-        target: 'https://rokafcoding.com',
+        target: 'https://test.mailalphamail.com',
         changeOrigin: true,
         secure: false,
       },
       '/api': {
-        target: 'https://rokafcoding.com',
+        target: 'https://test.mailalphamail.com',
         changeOrigin: true,
         secure: false,
         headers: {
-          Referer: 'https://rokafcoding.com',
-          Origin: 'https://rokafcoding.com',
+          Referer: 'https://test.mailalphamail.com',
+          Origin: 'https://test.mailalphamail.com',
         },
         // The backend expects /api/accounts, so we don't need to rewrite the path if the frontend requests /api/accounts
         rewrite: (path) => path,
