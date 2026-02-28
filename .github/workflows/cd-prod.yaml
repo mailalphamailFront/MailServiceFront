@@ -1,0 +1,77 @@
+name: Frontend (dev) - Build & Push to ECR on Release
+
+on:
+  release:
+    types: [prereleased]
+
+permissions:
+  contents: read
+  id-token: write # OIDC 사용할 때 필요
+
+env:
+  AWS_REGION: ap-northeast-2
+  # 예: "my-frontend" (ECR repo 이름)
+  ECR_REPOSITORY: mail/front
+  # 프론트 Dockerfile 위치 (프로젝트에 맞게 수정)
+  FRONTEND_DIR: .
+  DOCKERFILE_PATH: ./configs/Dockerfile
+
+jobs:
+  build-and-push:
+    name: Build and push frontend image (dev)
+    runs-on: ubuntu-latest
+
+    # GitHub Environment "dev"를 쓰고 싶으면 아래 줄을 켜고,
+    # secrets를 Environment(dev)에 저장하면 됨
+    environment: prod
+
+    # prerelease일 때만 실행 (published로 들어와도 prerelease면 통과)
+    if: ${{ github.event.release.prerelease == true }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Access Key 방식(원하면 위 OIDC step 대신 이걸 사용)
+      - name: Configure AWS credentials (Access Key)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tags
+        id: vars
+        run: |
+          # prerelease tag name (예: v0.1.0-dev.3)
+          echo "TAG=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          echo "SHA_TAG=sha-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Set up QEMU (ARM 크로스 빌드)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 선택: 빌드 캐시를 GH Actions 캐시에 저장 (빨라짐)
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ env.FRONTEND_DIR }}
+          file: ${{ env.DOCKERFILE_PATH }}
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.TAG }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:dev-latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.SHA_TAG }}
+          build-args: |
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
