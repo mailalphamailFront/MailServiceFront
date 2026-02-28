@@ -2,6 +2,7 @@ import { useRef, useEffect } from 'react';
 import { LogOut, UserPlus, User } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 interface ProfileDropdownProps {
@@ -11,6 +12,7 @@ interface ProfileDropdownProps {
 }
 
 export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps) {
+  const { t } = useTranslation();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -36,7 +38,7 @@ export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps)
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    toast.success('로그아웃 되었습니다.');
+    toast.success(t('auth.logout_success', '로그아웃 되었습니다.'));
     navigate('/login');
     onClose();
   };
@@ -63,30 +65,30 @@ export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps)
                 />
                 <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
               </div>
-              <h3 className="text-lg font-bold text-gray-900">{user?.email?.split('@')[0] || 'User'}</h3>
-              <p className="text-sm text-gray-500">{user?.email || 'Not logged in'}</p>
+              <h3 className="text-lg font-bold text-gray-900">{user?.email?.split('@')[0] || t('profile.user_placeholder')}</h3>
+              <p className="text-sm text-gray-500">{user?.email || t('profile.not_logged_in')}</p>
             </div>
           </div>
 
           {/* Menu Items */}
           <div className="p-2">
             <button
-              onClick={() => handleAction('Profile view requested')}
+              onClick={() => handleAction(t('profile.view_profile_requested', '프로필 보기 요청됨'))}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
             >
               <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600">
                 <User className="w-4 h-4" />
               </div>
-              <span className="font-medium text-left flex-1">View Profile</span>
+              <span className="font-medium text-left flex-1">{t('profile.view_profile')}</span>
             </button>
             <button
-              onClick={() => handleAction('Account switch requested')}
+              onClick={() => handleAction(t('profile.account_switch_requested', '계정 전환 요청됨'))}
               className="w-full flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-xl transition-colors"
             >
               <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
                 <UserPlus className="w-4 h-4" />
               </div>
-              <span className="font-medium text-left flex-1">Change Account</span>
+              <span className="font-medium text-left flex-1">{t('profile.change_account')}</span>
             </button>
           </div>
 
@@ -99,7 +101,7 @@ export function ProfileDropdown({ isOpen, onClose, user }: ProfileDropdownProps)
               <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
                 <LogOut className="w-4 h-4" />
               </div>
-              <span className="font-bold text-left flex-1">Sign Out</span>
+              <span className="font-bold text-left flex-1">{t('profile.sign_out')}</span>
             </button>
           </div>
         </motion.div>

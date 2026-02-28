@@ -12,6 +12,7 @@ import {
   MailOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Email } from '../types';
 import { clsx } from 'clsx';
 import { Tooltip } from './Tooltip';
@@ -32,6 +33,7 @@ interface EmailViewProps {
 }
 
 export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleRead, onReply, onForward }: EmailViewProps) {
+  const { t } = useTranslation();
   const { id, accountId, folderName = 'INBOX' } = useParams();
   const navigate = useNavigate();
 
@@ -113,7 +115,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
         <Mail className="w-16 h-16 mb-4 opacity-20" />
-        <p>Select an email to read</p>
+        <p>{t('email.select_to_read')}</p>
       </div>
     );
   }
@@ -122,7 +124,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
         <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-600" />
-        <p>Loading email content...</p>
+        <p>{t('email.loading_content')}</p>
       </div>
     );
   }
@@ -130,7 +132,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
   if (!email) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
-        <p>Email not found</p>
+        <p>{t('email.not_found')}</p>
       </div>
     );
   }
@@ -146,7 +148,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
   };
 
   const handleAction = (action: string) => {
-    toast.info(`${action} menu opened`);
+    toast.info(`${action} 메뉴가 열렸습니다`);
   };
 
   return (
@@ -160,11 +162,11 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-1">
-            <Tooltip text="Archive conversation">
+            <Tooltip text={t('email.archive_tooltip')}>
               <button onClick={handleArchive} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Archive className="w-5 h-5" /></button>
             </Tooltip>
 
-            <Tooltip text="Delete message">
+            <Tooltip text={t('email.delete_tooltip')}>
               <button
                 onClick={handleDelete}
                 className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-red-600 transition-colors"
@@ -173,7 +175,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
               </button>
             </Tooltip>
 
-            <Tooltip text={email.read ? "Mark as unread" : "Mark as read"}>
+            <Tooltip text={email.read ? t('email.mark_unread') : t('email.mark_read')}>
               <button onClick={() => onToggleRead(email.id)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
                 {email.read ? <Mail className="w-5 h-5" /> : <MailOpen className="w-5 h-5" />}
               </button>
@@ -181,7 +183,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Tooltip text={email.starred ? "Remove from starred" : "Add to starred"}>
+          <Tooltip text={email.starred ? t('email.remove_star') : t('email.add_star')}>
             <button
               onClick={() => onToggleStar(email.id)}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-yellow-400 transition-colors"
@@ -190,8 +192,8 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
             </button>
           </Tooltip>
 
-          <Tooltip text="More message options">
-            <button onClick={() => handleAction('Extended options')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><MoreVertical className="w-5 h-5" /></button>
+          <Tooltip text={t('email.more_options')}>
+            <button onClick={() => handleAction(t('email.more_options'))} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><MoreVertical className="w-5 h-5" /></button>
           </Tooltip>
         </div>
       </div>
@@ -210,26 +212,33 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-gray-900">{email.sender}</h2>
-                  <span className="text-sm text-gray-400">&lt;{email.senderEmail}&gt;</span>
+                  {email.sender === email.senderEmail ? (
+                    <h2 className="font-semibold text-gray-900">{email.senderEmail}</h2>
+                  ) : (
+                    <>
+                      <h2 className="font-semibold text-gray-900">{email.sender}</h2>
+                      <span className="text-sm text-gray-400">&lt;{email.senderEmail}&gt;</span>
+                    </>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 text-sm text-gray-500">
-                  <span>to</span>
+                  <span>{t('email.to_label')}</span>
                   {email.receivers && email.receivers.length > 0 ? (
                     email.receivers.map((r, i) => (
                       <span key={i} className="font-medium text-gray-600">
-                        {r.name || r.email} {`<${r.email}>`}{i < email.receivers!.length - 1 ? ',' : ''}
+                        {(!r.name || r.name === r.email) ? r.email : `${r.name} <${r.email}>`}
+                        {i < email.receivers!.length - 1 ? ', ' : ''}
                       </span>
                     ))
                   ) : (
-                    <span className="font-medium text-gray-600">me</span>
+                    <span className="font-medium text-gray-600">{t('email.me')}</span>
                   )}
                 </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">{format(new Date(email.timestamp), 'MMM d, yyyy')}</p>
-              <p className="text-xs text-gray-400">{format(new Date(email.timestamp), 'h:mm a')}</p>
+              <p className="text-sm text-gray-500">{format(new Date(email.timestamp), t('date.year_format', 'yyyy년 M월 d일'))}</p>
+              <p className="text-xs text-gray-400">{format(new Date(email.timestamp), t('date.time_format', 'a h:mm'))}</p>
             </div>
           </div>
           <div
@@ -240,20 +249,20 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
             dangerouslySetInnerHTML={{ __html: transformedContent }}
           />
           <div className="mt-12 pt-8 border-t border-gray-100 flex gap-4">
-            <Tooltip text="Reply to sender">
+            <Tooltip text={t('email.reply_tooltip')}>
               <button
                 onClick={() => onReply(email)}
                 className="flex items-center gap-2 px-6 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors font-medium"
               >
-                <Reply className="w-4 h-4" /> Reply
+                <Reply className="w-4 h-4" /> {t('email.reply')}
               </button>
             </Tooltip>
-            <Tooltip text="Forward this message">
+            <Tooltip text={t('email.forward_tooltip')}>
               <button
                 onClick={() => onForward(email)}
                 className="flex items-center gap-2 px-6 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors font-medium"
               >
-                <Forward className="w-4 h-4" /> Forward
+                <Forward className="w-4 h-4" /> {t('email.forward')}
               </button>
             </Tooltip>
           </div>

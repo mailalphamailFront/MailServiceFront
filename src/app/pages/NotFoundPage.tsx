@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router';
 import { Home, AlertCircle, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/button';
 
 export default function NotFoundPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   return (
@@ -14,10 +16,9 @@ export default function NotFoundPage() {
             <AlertCircle className="text-red-500 w-10 h-10" />
           </div>
           <h1 className="text-6xl font-black text-gray-900 tracking-tighter mb-2">404</h1>
-          <h2 className="text-2xl font-bold text-gray-800">페이지를 찾을 수 없습니다</h2>
+          <h2 className="text-2xl font-bold text-gray-800">{t('error_page.not_found_title')}</h2>
           <p className="text-gray-500 text-sm mt-4 max-w-[320px]">
-            요청하신 페이지가 사라졌거나 잘못된 경로입니다.
-            주소를 다시 확인해 주세요.
+            {t('error_page.not_found_desc')}
           </p>
         </div>
 
@@ -29,7 +30,7 @@ export default function NotFoundPage() {
               className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl shadow-md shadow-blue-100 flex items-center justify-center gap-2 group transition-all"
             >
               <Home className="w-4 h-4" />
-              메인으로 돌아가기
+              {t('error_page.back_to_main')}
             </Button>
 
             <Button
@@ -38,14 +39,14 @@ export default function NotFoundPage() {
               className="w-full h-12 rounded-xl bg-white border-gray-200 hover:bg-gray-50 flex items-center justify-center gap-2 text-gray-600 font-medium"
             >
               <ArrowLeft className="w-4 h-4" />
-              이전 페이지로
+              {t('error_page.back_to_prev')}
             </Button>
           </div>
         </div>
 
         {/* Footer */}
         <p className="text-gray-400 text-xs">
-          도움이 필요하신가요? <button className="text-blue-600 font-semibold hover:underline">고객 센터</button>에 문의하세요.
+          {t('error_page.need_help')} <button className="text-blue-600 font-semibold hover:underline">{t('error_page.contact_support')}</button>에 문의하세요.
         </p>
       </div>
     </div>

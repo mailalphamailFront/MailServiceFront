@@ -11,6 +11,7 @@ import {
   Folder
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 import { Tooltip } from './Tooltip';
 import { useQuery } from '@tanstack/react-query';
 import { mailService } from '../api/services/mail.service';
@@ -58,21 +59,22 @@ const getFolderColor = (type: string) => {
   }
 };
 
-const getUnifiedFolderName = (type: string, fallback: string) => {
+const getUnifiedFolderName = (type: string, fallback: string, t: any) => {
   if (type === 'CUSTOM') return fallback;
   switch (type.toUpperCase()) {
-    case 'INBOX': return 'Inbox';
-    case 'SENT': return 'Sent';
-    case 'DRAFTS': return 'Drafts';
-    case 'TRASH': return 'Trash';
+    case 'INBOX': return t('nav.inbox');
+    case 'SENT': return t('nav.sent');
+    case 'DRAFTS': return t('nav.drafts');
+    case 'TRASH': return t('nav.trash');
     case 'JUNK':
-    case 'SPAM': return 'Spam';
-    case 'STARRED': return 'Starred';
+    case 'SPAM': return t('nav.spam');
+    case 'STARRED': return t('nav.starred');
     default: return fallback;
   }
 };
 
 export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any }) {
+  const { t } = useTranslation();
   const location = useLocation();
 
   const { data: accountsResponse } = useQuery({
@@ -90,16 +92,14 @@ export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any 
         <div className="sidebar-logo-icon">
           <Mail className="text-white w-6 h-6" />
         </div>
-        <span className="text-xl font-bold text-gray-900 tracking-tight">MailCloud</span>
+        <span className="text-xl font-bold text-gray-900 tracking-tight">MailAlphaMail</span>
       </div>
 
       <div className="px-4 mb-6">
-        <Tooltip text="Create new message">
-          <button onClick={onCompose} className="compose-button w-full">
-            <Plus className="w-5 h-5" />
-            <span>Compose</span>
-          </button>
-        </Tooltip>
+        <button onClick={onCompose} className="compose-button w-full">
+          <Plus className="w-5 h-5" />
+          <span>{t('nav.compose')}</span>
+        </button>
       </div>
 
       <nav className="flex-1 px-3 space-y-4 overflow-y-auto custom-scrollbar">
@@ -115,7 +115,7 @@ export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any 
             >
               <Inbox className={clsx("w-5 h-5 text-blue-600")} />
               <div className="flex-1 flex items-center justify-between">
-                <span>Inbox</span>
+                <span>{t('nav.inbox')}</span>
                 {allInboxes.unreadCount > 0 && (
                   <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
                     {allInboxes.unreadCount}
@@ -155,7 +155,7 @@ export function Sidebar({ onCompose, user }: { onCompose: () => void, user: any 
                   <Icon className={clsx("w-4 h-4", colorClass)} />
                   <div className="flex-1 flex items-center justify-between min-w-0">
                     <span className="truncate text-sm">
-                      {getUnifiedFolderName(folder.type, folder.displayName || folder.name)}
+                      {getUnifiedFolderName(folder.type, folder.displayName || folder.name, t)}
                     </span>
                     {folder.unreadCount > 0 && (
                       <span className="text-[10px] font-medium text-gray-500">

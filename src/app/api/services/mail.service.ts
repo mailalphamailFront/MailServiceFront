@@ -133,8 +133,10 @@ export const mailService = {
   },
 
   // Delete a mail
-  deleteMail: async (id: string): Promise<void> => {
-    await api.delete(`/api/emails/${id}`);
+  deleteMail: async (messageNumber: number, accountId: number, folderId: string): Promise<void> => {
+    await api.delete(`/api/emails/${messageNumber}`, {
+      params: { accountId, folderId }
+    });
   },
 
   // Star/Unstar a mail (Backend doesn't seem to have this yet, so we'll keep the mock/structure)

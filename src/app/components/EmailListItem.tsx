@@ -1,18 +1,21 @@
 import React from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router';
-import { Star } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { format, isToday, getYear } from 'date-fns';
 import { Email } from '../types';
 import { clsx } from 'clsx';
+import { useTranslation } from 'react-i18next';
 import '../styles.css';
 
 interface EmailListItemProps {
   email: Email;
-  onToggleStar: (id: string) => void;
   onMarkRead: (id: string) => void;
+  isSelected?: boolean;
+  onToggleSelection?: () => void;
 }
 
-export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItemProps) {
+export function EmailListItem({ email, onMarkRead, isSelected, onToggleSelection }: EmailListItemProps) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
@@ -32,9 +35,9 @@ export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItem
     }
   };
 
-  const handleToggleStar = (e: React.MouseEvent) => {
+  const handleToggleSelection = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onToggleStar(email.id);
+    onToggleSelection?.();
   };
 
   const date = new Date(email.timestamp);
@@ -42,31 +45,37 @@ export function EmailListItem({ email, onToggleStar, onMarkRead }: EmailListItem
 
   let dateDisplay;
   if (isToday(date)) {
-    dateDisplay = format(date, 'h:mm a');
+    dateDisplay = format(date, t('date.today_format', 'a h:mm'));
   } else if (getYear(date) !== getYear(now)) {
-    dateDisplay = format(date, 'MMM d, yyyy');
+    dateDisplay = format(date, t('date.year_format', 'yyyy년 M월 d일'));
   } else {
-    dateDisplay = format(date, 'MMM d');
+    dateDisplay = format(date, t('date.default_format', 'M월 d일'));
   }
 
   return (
     <div
       onClick={handleClick}
       className={clsx(
-        "email-list-item-base",
-        isActive && "email-list-item-active",
-        !email.read ? "bg-blue-50/40" : "bg-white"
+        "email-list-item-base border-l-4 transition-all duration-200",
+        isSelected ? "bg-blue-50 border-l-blue-600 shadow-sm" : "border-l-transparent",
+        isActive && !isSelected && "email-list-item-active",
+        !email.read && !isSelected ? "bg-blue-50/40" : (isSelected ? "" : "bg-white")
       )}
     >
       <div className="flex items-start gap-3 w-full">
         <button
-          onClick={handleToggleStar}
-          className="shrink-0 mt-0.5 outline-none focus:ring-2 focus:ring-yellow-400 rounded-sm"
+          onClick={handleToggleSelection}
+          className={clsx(
+            "shrink-0 mt-0.5 w-5 h-5 rounded-md border flex items-center justify-center transition-all outline-none focus:ring-2 focus:ring-blue-400",
+            isSelected
+              ? "bg-blue-600 border-blue-600 text-white"
+              : "bg-white border-gray-300 text-transparent hover:border-blue-400"
+          )}
         >
-          <Star className={clsx(
-            "w-4 h-4 transition-colors",
-            email.starred ? "fill-yellow-400 text-yellow-400" : "text-gray-300 hover:text-gray-400"
-          )} />
+          <Check className={clsx(
+            "w-3.5 h-3.5 transition-transform",
+            isSelected ? "scale-100" : "scale-0"
+          )} strokeWidth={3} />
         </button>
 
         <div className="flex-1 min-w-0">

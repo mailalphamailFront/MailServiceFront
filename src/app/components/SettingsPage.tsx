@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { SettingsSidebar } from './SettingsSidebar';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 // Services & Hooks
@@ -16,6 +17,7 @@ import { mailService } from "../api/services/mail.service";
 import { EmailAccountsResponse } from "../types";
 
 export function SettingsPage() {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("home");
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -34,13 +36,11 @@ export function SettingsPage() {
 
   const handleConnect = async () => {
     if (!email || !password || !selectedService || !userLoginPassword) {
-      toast.error("Please fill in all fields");
+      toast.error(t('settings.fill_all_fields'));
       return;
     }
 
     setIsConnecting(true);
-    const toastId = toast.loading("Connecting to " + selectedService + "...");
-
     try {
       const payload = {
         accountEmail: email,
@@ -52,7 +52,7 @@ export function SettingsPage() {
       const response = await mailService.connectAccount(payload);
 
       console.log("Account connected successfully:", response.data);
-      toast.success("Account connected successfully!", { id: toastId });
+      toast.success(t('settings.connect_success'));
 
       setSelectedService(null);
       setEmail("");
@@ -67,7 +67,7 @@ export function SettingsPage() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       console.error("Connection error:", error);
 
-      let errorMessage = "Failed to connect account";
+      let errorMessage = t('settings.connect_error');
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
         const msg = error.response?.data?.message || error.message;
@@ -81,21 +81,20 @@ export function SettingsPage() {
         errorMessage = error.message;
       }
 
-      toast.error(errorMessage, { id: toastId });
+      toast.error(errorMessage);
     } finally {
       setIsConnecting(false);
     }
   };
 
   const handleDisconnect = async (accountId: number) => {
-    if (!confirm("Are you sure you want to disconnect this account?")) {
+    if (!confirm(t('settings.disconnect_confirm'))) {
       return;
     }
 
-    const toastId = toast.loading("Disconnecting account...");
     try {
       await mailService.disconnectAccount(accountId);
-      toast.success("Account disconnected successfully!", { id: toastId });
+      toast.success(t('settings.disconnect_success'));
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["connectedAccounts"] }),
@@ -105,11 +104,11 @@ export function SettingsPage() {
       setSelectedService(null);
     } catch (error: any) {
       console.error("Disconnect error:", error);
-      let errorMessage = "Failed to disconnect account";
+      let errorMessage = t('settings.disconnect_error');
       if (axios.isAxiosError(error)) {
         errorMessage = error.response?.data?.message || error.message;
       }
-      toast.error(errorMessage, { id: toastId });
+      toast.error(errorMessage);
     }
   };
 
@@ -119,7 +118,7 @@ export function SettingsPage() {
         return (
           <div className="max-w-4xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Profile Settings
+              {t('settings.profile_title')}
             </h2>
             <div className="bg-white rounded-2xl border border-gray-100 p-8 space-y-6 shadow-sm">
               <div className="flex items-center gap-6">
@@ -135,17 +134,17 @@ export function SettingsPage() {
                     Alex Rivera
                   </h3>
                   <p className="text-gray-500">
-                    Pro Plan • Member since Jan 2024
+                    {t('settings.pro_plan')} • {t('settings.member_since', { date: '2024년 1월' })}
                   </p>
                   <button className="mt-2 text-sm font-bold text-blue-600 hover:text-blue-700">
-                    Change Avatar
+                    {t('settings.change_avatar')}
                   </button>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Display Name
+                    {t('settings.display_name')}
                   </label>
                   <input
                     type="text"
@@ -155,7 +154,7 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1">
-                    Email Address
+                    {t('settings.email_address')}
                   </label>
                   <input
                     type="email"
@@ -167,68 +166,23 @@ export function SettingsPage() {
               </div>
             </div>
 
-            <div className="mt-8 p-8 rounded-3xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-xl relative overflow-hidden">
-              <div className="relative z-10">
-                <h2 className="text-2xl font-bold mb-2">Pro Plan</h2>
-                <p className="text-blue-100 mb-6 max-w-md">
-                  You're currently taking advantage of our premium features.
-                  High security, unlimited storage.
-                </p>
-                <button className="px-6 py-2.5 bg-white text-blue-600 font-bold rounded-xl hover:bg-blue-50 transition-colors">
-                  Check Invoices
-                </button>
-              </div>
-              <div className="absolute top-0 right-0 -mr-12 -mt-12 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-            </div>
-          </div>
-        );
-      case "appearance":
-        return (
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Appearance
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {[
-                { name: "Light", bg: "bg-white", border: "border-gray-200" },
-                { name: "Dark", bg: "bg-gray-900", border: "border-gray-800" },
-                { name: "Contrast", bg: "bg-black", border: "border-gray-900" },
-                {
-                  name: "System",
-                  bg: "bg-gradient-to-r from-white to-gray-900",
-                  border: "border-gray-200",
-                },
-              ].map((theme) => (
-                <button
-                  key={theme.name}
-                  className="p-6 bg-white border border-gray-100 rounded-2xl hover:border-blue-200 hover:shadow-md transition-all text-left group"
-                >
-                  <div
-                    className={`w-full h-32 rounded-xl mb-4 ${theme.bg} ${theme.border} border shadow-inner transition-transform group-hover:scale-[1.02]`}
-                  ></div>
-                  <span className="font-bold text-gray-900">
-                    {theme.name} Theme
-                  </span>
-                </button>
-              ))}
-            </div>
           </div>
         );
       case "security":
         return (
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-4xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Security & Privacy
+              {t('settings.security_title')}
             </h2>
             <div className="space-y-6">
               <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
-                      Two-factor Authentication
+                      {t('settings.two_factor_auth')}
                     </h3>
                     <p className="text-sm text-gray-500">
-                      Add an extra layer of security to your account.
+                      {t('settings.two_factor_desc')}
                     </p>
                   </div>
                   <div className="w-12 h-6 bg-gray-200 rounded-full relative cursor-pointer">
@@ -236,12 +190,12 @@ export function SettingsPage() {
                   </div>
                 </div>
                 <button className="px-6 py-2 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-colors">
-                  Enable 2FA
+                  {t('settings.enable_2fa')}
                 </button>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Browsing Sessions
+                  {t('settings.browsing_sessions')}
                 </h3>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-2 border-b border-gray-50">
@@ -250,12 +204,12 @@ export function SettingsPage() {
                       <div>
                         <p className="text-sm font-bold">Chrome on macOS</p>
                         <p className="text-xs text-green-500">
-                          Current Session
+                          {t('settings.current_session')}
                         </p>
                       </div>
                     </div>
                     <button className="text-xs font-bold text-red-600">
-                      Revoke
+                      {t('settings.revoke_session')}
                     </button>
                   </div>
                 </div>
@@ -266,33 +220,33 @@ export function SettingsPage() {
                 <div className="bg-red-50/30 rounded-2xl border border-red-100 p-8 shadow-sm">
                   <div className="flex items-center gap-3 mb-4 text-red-600">
                     <Shield className="w-6 h-6" />
-                    <h3 className="text-lg font-bold">Danger Zone</h3>
+                    <h3 className="text-lg font-bold">{t('settings.danger_zone')}</h3>
                   </div>
                   <div className="mb-6">
-                    <h4 className="text-gray-900 font-bold mb-1">Delete Account</h4>
+                    <h4 className="text-gray-900 font-bold mb-1">{t('settings.delete_account')}</h4>
                     <p className="text-sm text-gray-500">
-                      Permanently remove your account and all of your data. This action is irreversible.
+                      {t('settings.delete_account_desc')}
                     </p>
                   </div>
 
                   <div className="max-w-md space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold text-gray-700 ml-1">Confirm Password</label>
+                      <label className="text-sm font-bold text-gray-700 ml-1">{t('settings.confirm_password')}</label>
                       <input
                         type="password"
                         value={userLoginPassword} // 기존 선언된 state 활용
                         onChange={(e) => setUserLoginPassword(e.target.value)}
-                        placeholder="Enter your password to confirm"
+                        placeholder={t('settings.confirm_password_placeholder')}
                         className="w-full p-3.5 bg-white border border-red-100 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition-all"
                       />
                     </div>
                     <button
                       onClick={async () => {
                         if (!userLoginPassword) {
-                          toast.error("Please enter your password for verification.");
+                          toast.error(t('settings.password_verification_required'));
                           return;
                         }
-                        if (confirm("Are you absolutely sure you want to delete your account? This cannot be undone.")) {
+                        if (confirm(t('settings.delete_confirm'))) {
                           try {
                             await authService.withdraw(userLoginPassword); // 추가된 withdraw API 호출
 
@@ -300,48 +254,17 @@ export function SettingsPage() {
                             localStorage.removeItem('user');
                             window.location.href = '/login';
                           } catch (error: any) {
-                            toast.error(error.response?.data?.message || "Failed to delete account.");
+                            toast.error(error.response?.data?.message || t('settings.delete_error'));
                           }
                         }
                       }}
                       className="w-full py-4 bg-red-600 text-white font-bold rounded-2xl hover:bg-red-700 shadow-lg shadow-red-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <Trash2 className="w-5 h-5" />
-                      Delete My Account
+                      {t('settings.delete_my_account')}
                     </button>
                   </div>
                 </div>
-              </div>
-            </div>
-          </div>
-        );
-      case "language":
-        return (
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Language & Region
-            </h2>
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-8">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Interface Language
-                </label>
-                <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
-                  <option>English (United States)</option>
-                  <option>French (France)</option>
-                  <option>Spanish (Spain)</option>
-                  <option>Japanese (Japan)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">
-                  Time Zone
-                </label>
-                <select className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none appearance-none">
-                  <option>(GMT-08:00) Pacific Time</option>
-                  <option>(GMT+00:00) London</option>
-                  <option>(GMT+09:00) Tokyo</option>
-                </select>
               </div>
             </div>
           </div>
@@ -356,12 +279,7 @@ export function SettingsPage() {
             bg: "hover:bg-red-50",
             border: "hover:border-red-200",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24">
-                <path
-                  d="M24 4.5v15c0 .85-.65 1.5-1.5 1.5H21V7.33l-9 6.75-9-6.75V21H1.5C.65 21 0 20.35 0 19.5v-15c0-.85.65-1.5 1.5-1.5H2l10 7.5L22 3h.5c.85 0 1.5.65 1.5 1.5z"
-                  fill="#EA4335"
-                />
-              </svg>
+              <img src="/images/gmail.svg" alt="Gmail" className="w-8 h-8 object-contain" />
             ),
           },
           {
@@ -372,17 +290,7 @@ export function SettingsPage() {
             bg: "hover:bg-blue-50",
             border: "hover:border-blue-200",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24">
-                <path
-                  d="M21 4.5v15c0 .828-.672 1.5-1.5 1.5h-10C8.672 21 8 20.328 8 19.5v-15C8 3.672 8.672 3 9.5 3h10c.828 0 1.5.672 1.5 1.5z"
-                  fill="#0072C6"
-                />
-                <path
-                  d="M1.5 7.5v9c0 .828.672 1.5 1.5 1.5h7.5c.828 0 1.5-.672 1.5-1.5v-9C12 6.672 11.328 6 10.5 6H3c-.828 0-1.5.672-1.5 1.5z"
-                  fill="#0072C6"
-                />
-                <path d="M4.5 9h4.5v6H4.5V9z" fill="#fff" />
-              </svg>
+              <img src="/images/outlook.svg" alt="Outlook" className="w-8 h-8 object-contain" />
             ),
           },
           {
@@ -393,9 +301,7 @@ export function SettingsPage() {
             bg: "hover:bg-gray-50",
             border: "hover:border-gray-300",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#007AFF">
-                <path d="M17.5 19c-1.5 0-2.8-.7-3.7-1.8-1 .8-2.2 1.3-3.6 1.3-3 0-5.5-2.5-5.5-5.5 0-2.3 1.5-4.3 3.6-5.1-.1-.3-.1-.6-.1-.9 0-3 2.5-5.5 5.5-5.5 1.8 0 3.4.9 4.4 2.3.8-.4 1.7-.6 2.6-.6 2.8 0 5 2.2 5 5 0 .2 0 .4-.1.6 1.2.9 2 2.4 2 4.1 0 2.9-2.2 5.3-5.1 5.4v0z" />
-              </svg>
+              <img src="/images/icloud.png" alt="iCloud" className="w-8 h-8 object-contain" />
             ),
           },
           {
@@ -406,12 +312,7 @@ export function SettingsPage() {
             bg: "hover:bg-[#03C75A]/5",
             border: "hover:border-[#03C75A]/20",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24">
-                <path
-                  d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"
-                  fill="#03C75A"
-                />
-              </svg>
+              <img src="/images/naver.svg" alt="Naver" className="w-8 h-8 object-contain" />
             ),
           },
           {
@@ -422,12 +323,7 @@ export function SettingsPage() {
             bg: "hover:bg-[#3E7FFF]/5",
             border: "hover:border-[#3E7FFF]/20",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24">
-                <path
-                  d="M3.208 4h3.704l1.624 4.472L10.168 4h3.704l-3.328 8.04L13.88 20h-3.72l-1.632-4.524L6.904 20H3.184l3.352-8.04-3.328-7.96zM15.4 14.5c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2z"
-                  fill="#3E7FFF"
-                />
-              </svg>
+              <img src="/images/daum.svg" alt="Daum" className="w-8 h-8 object-contain" />
             ),
           },
           {
@@ -438,12 +334,7 @@ export function SettingsPage() {
             bg: "hover:bg-[#6001D2]/5",
             border: "hover:border-[#6001D2]/20",
             logo: (
-              <svg className="w-8 h-8" viewBox="0 0 24 24">
-                <path
-                  d="M10.375 12.016L6.96 4h3.69l1.64 4.53L13.91 4h3.69l-3.415 8.016V18h-3.81v-5.984zM18.17 14.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z"
-                  fill="#6001D2"
-                />
-              </svg>
+              <img src="/images/yahoo.png" alt="Yahoo" className="w-8 h-8 object-contain" />
             ),
           },
         ];
@@ -462,7 +353,7 @@ export function SettingsPage() {
                   className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors group"
                 >
                   <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                  <span className="font-bold">Back to Services</span>
+                  <span className="font-bold">{t('settings.back_to_accounts')}</span>
                 </button>
 
                 <div className="flex items-center gap-4 mb-8">
@@ -471,7 +362,7 @@ export function SettingsPage() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-gray-900">
-                      Connected with {service?.name}
+                      {t('settings.connected_with', { service: service?.name })}
                     </h2>
                     <p className="text-gray-500">{connectedAccount.accountEmail}</p>
                   </div>
@@ -481,7 +372,7 @@ export function SettingsPage() {
                   <div className="p-4 bg-green-50 border border-green-100 rounded-xl flex items-center gap-3 text-green-700">
                     <Shield className="w-5 h-5" />
                     <p className="text-sm font-medium">
-                      Your account is securely connected and syncing.
+                      {t('settings.sync_desc')}
                     </p>
                   </div>
 
@@ -489,7 +380,7 @@ export function SettingsPage() {
                     onClick={() => handleDisconnect(connectedAccount.accountId)}
                     className="w-full py-4 bg-red-50 text-red-600 font-bold rounded-2xl hover:bg-red-100 border border-red-100 transition-all flex items-center justify-center gap-2"
                   >
-                    Disconnect Account
+                    {t('settings.disconnect_account')}
                   </button>
                 </div>
               </div>
@@ -503,7 +394,7 @@ export function SettingsPage() {
                 className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-8 transition-colors group"
               >
                 <ChevronLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-                <span className="font-bold">Back to Services</span>
+                <span className="font-bold">{t('settings.back_to_accounts')}</span>
               </button>
 
               <div className="flex items-center gap-4 mb-8">
@@ -512,10 +403,10 @@ export function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900">
-                    Sign in with {service?.name}
+                    {t('settings.sign_in_with', { service: service?.name })}
                   </h2>
                   <p className="text-gray-500">
-                    Connect your account using an App Password.
+                    {t('settings.connect_app_password')}
                   </p>
                 </div>
               </div>
@@ -523,7 +414,7 @@ export function SettingsPage() {
               <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700 ml-1">
-                    Email Address
+                    {t('settings.email_address_label')}
                   </label>
                   <input
                     type="email"
@@ -538,7 +429,7 @@ export function SettingsPage() {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center ml-1">
                     <label className="text-sm font-bold text-gray-700">
-                      App Password
+                      {t('settings.app_password_label')}
                     </label>
                     <div className="flex gap-3">
                       <button
@@ -574,23 +465,23 @@ export function SettingsPage() {
                           if (envPassword) {
                             setPassword(envPassword);
                             toast.success(
-                              `Filled password for ${services.find((s) => s.id === selectedService)?.name}`,
+                              t('settings.filled_password_for', { service: services.find((s) => s.id === selectedService)?.name })
                             );
                           } else {
                             toast.error(
-                              `No test password found for ${selectedService} in .env`,
+                              t('settings.no_test_password', { service: selectedService })
                             );
                           }
                         }}
                         tabIndex={-1}
                       >
-                        Fill password from .env
+                        {t('settings.fill_password_env')}
                       </button>
                       <button
                         className="text-[12px] text-blue-600 hover:underline font-medium"
                         tabIndex={-1}
                       >
-                        How to generate?
+                        {t('settings.how_to_generate')}
                       </button>
                     </div>
                   </div>
@@ -598,7 +489,7 @@ export function SettingsPage() {
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your app password"
+                    placeholder={t('settings.app_password_label')}
                     disabled={isConnecting}
                     tabIndex={2}
                     className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -606,13 +497,13 @@ export function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700 ml-1">
-                    Current User Login Password
+                    {t('settings.current_password_label')}
                   </label>
                   <input
                     type="password"
                     value={userLoginPassword}
                     onChange={(e) => setUserLoginPassword(e.target.value)}
-                    placeholder="Enter your login password for validation"
+                    placeholder={t('settings.confirm_password_placeholder')}
                     disabled={isConnecting}
                     tabIndex={3}
                     className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -627,36 +518,26 @@ export function SettingsPage() {
                   {isConnecting ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Connecting...
+                      {t('settings.connecting')}
                     </>
                   ) : (
-                    "Connect Account"
+                    t('settings.connect_account_button')
                   )}
                 </button>
               </div>
 
-              <div className="mt-8 flex gap-4 p-6 rounded-2xl bg-amber-50 border border-amber-100 text-amber-900">
-                <div className="mt-0.5">
-                  <Shield className="w-5 h-5 text-amber-600" />
-                </div>
-                <p className="text-sm">
-                  <b>Security Note:</b> Never enter your primary account
-                  password here. Use a unique <b>App Password</b> generated from
-                  your {service?.name} account settings for enhanced security.
-                </p>
-              </div>
+
             </div>
           );
         }
 
         return (
-          <div className="max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-4xl">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Connected Services
+              {t('settings.connected_accounts')}
             </h2>
             <p className="text-gray-500 mb-8">
-              Link your existing mailboxes to view all your messages in one
-              place.
+              {t('settings.link_mailbox_desc')}
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -698,31 +579,13 @@ export function SettingsPage() {
                       <span className="text-sm font-bold text-gray-900 truncate w-full px-2 text-center">
                         {isConnected
                           ? account.accountEmail
-                          : `Sign in with ${service.name}`}
+                          : t('settings.connect_to_service', { service: service.name })}
                       </span>
-                      {isConnected && (
-                        <span className="text-[10px] text-gray-400 mt-1 font-medium">Connected</span>
-                      )}
+                      {isConnected}
                     </button>
                   );
                 })
               )}
-            </div>
-
-            <div className="mt-12 p-8 rounded-3xl bg-gray-50 border border-gray-100 flex items-center gap-6">
-              <div className="p-4 bg-white rounded-2xl shadow-sm">
-                <Shield className="w-8 h-8 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900 mb-1">
-                  Privacy & Security
-                </h3>
-                <p className="text-sm text-gray-500 max-w-lg">
-                  Your login credentials never leave your browser. We securely
-                  connect to your external mail accounts without storing your
-                  primary passwords.
-                </p>
-              </div>
             </div>
           </div>
         );
@@ -733,11 +596,10 @@ export function SettingsPage() {
               <Globe className="w-12 h-12 text-gray-300" />
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-1">
-              Settings Section Under Construction
+              {t('settings.under_construction_title')}
             </h3>
             <p className="text-gray-500 max-w-sm">
-              We are currently migrating this settings module to the new tabbed
-              view.
+              {t('settings.under_construction_desc')}
             </p>
           </div>
         );
