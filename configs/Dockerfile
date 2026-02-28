@@ -10,8 +10,8 @@ RUN npm ci
 COPY . .
 
 # Vite build-time env (클라이언트에 포함될 값)
-ARG VITE_API_BASE_URL
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ARG API_URL
+ENV API_URL=$API_URL
 
 # build -> dist/
 RUN npm run build
