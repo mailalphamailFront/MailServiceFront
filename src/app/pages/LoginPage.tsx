@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Mail, Lock, Loader2, ArrowRight, Github } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,6 +9,7 @@ import { authService } from '../api/services/auth.service';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,7 +18,7 @@ export default function LoginPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      toast.error('이메일과 비밀번호를 입력해주세요.');
+      toast.error(t('auth.fill_all_fields'));
       return;
     }
 
@@ -33,14 +35,14 @@ export default function LoginPage() {
         const userData = response.user || { email, username: email.split('@')[0], id: 'temp_id' };
         localStorage.setItem('user', JSON.stringify(userData));
 
-        toast.success('로그인에 성공했습니다!');
+        toast.success(t('auth.login_success'));
         navigate('/inbox');
       } else {
-        toast.error('로그인 정보가 올바르지 않습니다.');
+        toast.error(t('auth.login_failed'));
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      const errorMsg = error.response?.data?.error || error.response?.data?.message || '로그인 중 오류가 발생했습니다.';
+      const errorMsg = error.response?.data?.error || error.response?.data?.message || t('auth.login_error', '로그인 중 오류가 발생했습니다.');
       toast.error(errorMsg);
     } finally {
       setIsLoading(false);
@@ -52,18 +54,16 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px]">
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-4">
-            <Mail className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">MailCloud 로그인</h1>
-          <p className="text-gray-500 text-sm mt-2">반가워요! 계정에 로그인하고 메일을 확인하세요.</p>
+          <img src="/images/MailAlphaMail.png" alt="MailAlphaMail" className="w-48 h-32 object-contain mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('auth.login_title')}</h1>
+          {/* <p className="text-gray-500 text-sm mt-2">{t('auth.login_desc')}</p> */}
         </div>
 
         {/* Login Card */}
         <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-xl shadow-gray-100/50">
           <form onSubmit={handleLogin} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="email">이메일 주소</Label>
+              <Label htmlFor="email">{t('auth.email_label')}</Label>
               <div className="relative group">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                 <Input
@@ -80,10 +80,7 @@ export default function LoginPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">비밀번호</Label>
-                <button type="button" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
-                  비밀번호 찾기
-                </button>
+                <Label htmlFor="password">{t('auth.password_label')}</Label>
               </div>
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -108,11 +105,17 @@ export default function LoginPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  로그인하기
+                  {t('auth.login_button')}
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </Button>
+
+            <div className="flex justify-end">
+              <button type="button" className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors">
+                {t('auth.forgot_password')}
+              </button>
+            </div>
           </form>
 
           <div className="relative my-8">
@@ -120,7 +123,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-gray-100"></div>
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-white px-2 text-gray-400">다른 방법으로 로그인</span>
+              <span className="bg-white px-2 text-gray-400">{t('auth.login_other')}</span>
             </div>
           </div>
 
@@ -138,9 +141,9 @@ export default function LoginPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-8">
-          계정이 없으신가요?{' '}
+          {t('auth.no_account')}{' '}
           <Link to="/register" className="font-bold text-blue-600 hover:text-blue-700 transition-colors">
-            회원가입 하기
+            {t('auth.register_link')}
           </Link>
         </p>
       </div>

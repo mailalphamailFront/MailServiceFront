@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router';
 import { Mail, Lock, User, Loader2, ArrowRight, ShieldCheck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -8,6 +9,7 @@ import { authService } from '../api/services/auth.service';
 import { toast } from 'sonner';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,14 +23,14 @@ export default function RegisterPage() {
 
   const handleSendCode = async () => {
     if (!email) {
-      toast.error('이메일을 먼저 입력해주세요.');
+      toast.error(t('auth.send_code_first'));
       return;
     }
     setIsSendingCode(true);
     try {
       await authService.sendVerificationCode(email);
       setIsCodeSent(true);
-      toast.success('인증번호가 발송되었습니다. 메일을 확인해주세요.');
+      toast.success(t('auth.code_sent'));
     } catch (error: any) {
       console.error('Full Error Object:', error);
       if (error.code === 'ERR_NETWORK') {
@@ -46,16 +48,16 @@ export default function RegisterPage() {
 
   const handleVerifyCode = async () => {
     if (!verificationCode) {
-      toast.error('인증번호를 입력해주세요.');
+      toast.error(t('auth.fill_code', '인증번호를 입력해주세요.'));
       return;
     }
     setIsVerifyingCode(true);
     try {
       await authService.confirmVerificationCode(email, verificationCode);
       setIsVerified(true);
-      toast.success('이메일 인증이 완료되었습니다.');
+      toast.success(t('auth.verification_complete'));
     } catch (error: any) {
-      toast.error(error.response?.data?.error || '인증번호가 올바르지 않습니다.');
+      toast.error(error.response?.data?.error || t('auth.invalid_code', '인증번호가 올바르지 않습니다.'));
     } finally {
       setIsVerifyingCode(false);
     }
@@ -64,14 +66,14 @@ export default function RegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password || !isVerified) {
-      toast.error('모든 필드를 입력하고 이메일 인증을 완료해주세요.');
+      toast.error(t('auth.fill_and_verify'));
       return;
     }
 
     setIsLoading(true);
     try {
       await authService.register({ username: name, email, password });
-      toast.success('회원가입이 완료되었습니다! 로그인해주세요.');
+      toast.success(t('auth.register_complete'));
       navigate('/login');
     } catch (error: any) {
       console.error('Registration full error:', error);
@@ -93,24 +95,22 @@ export default function RegisterPage() {
       <div className="w-full max-w-[400px]">
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 mb-4">
-            <Mail className="text-white w-6 h-6" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">MailCloud 가입하기</h1>
-          <p className="text-gray-500 text-sm mt-2">간편하게 가입하고 혁신적인 메일 서비스를 이용해보세요.</p>
+          <img src="/images/MailAlphaMail.png" alt="MailAlphaMail" className="w-48 h-32 object-contain mb-4" />
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">{t('auth.register_title')}</h1>
+          {/* <p className="text-gray-500 text-sm mt-2">{t('auth.register_desc')}</p> */}
         </div>
 
         {/* Register Card */}
         <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-xl shadow-gray-100/50">
           <form onSubmit={handleRegister} className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="name">이름</Label>
+              <Label htmlFor="name">{t('auth.name_label')}</Label>
               <div className="relative group">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                 <Input
                   id="name"
                   type="text"
-                  placeholder="홍길동"
+                  placeholder={t('auth.name_placeholder')}
                   className="pl-10"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -120,7 +120,7 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">이메일 주소</Label>
+              <Label htmlFor="email">{t('auth.email_label')}</Label>
               <div className="flex gap-2">
                 <div className="relative group flex-1">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                     disabled={isSendingCode || !email}
                     className="shrink-0"
                   >
-                    {isSendingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : '번호 전송'}
+                    {isSendingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : t('auth.send_code')}
                   </Button>
                 )}
               </div>
@@ -150,14 +150,14 @@ export default function RegisterPage() {
 
             {isCodeSent && !isVerified && (
               <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                <Label htmlFor="code">인증번호</Label>
+                <Label htmlFor="code">{t('auth.verification_code')}</Label>
                 <div className="flex gap-2">
                   <div className="relative group flex-1">
                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                     <Input
                       id="code"
                       type="text"
-                      placeholder="6자리 숫자"
+                      placeholder={t('auth.code_placeholder')}
                       className="pl-10"
                       value={verificationCode}
                       onChange={(e) => setVerificationCode(e.target.value)}
@@ -170,14 +170,14 @@ export default function RegisterPage() {
                     disabled={isVerifyingCode || !verificationCode}
                     className="shrink-0 bg-blue-600 text-white"
                   >
-                    {isVerifyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : '인증 확인'}
+                    {isVerifyingCode ? <Loader2 className="w-4 h-4 animate-spin" /> : t('auth.verify_code')}
                   </Button>
                 </div>
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="password">비밀번호</Label>
+              <Label htmlFor="password">{t('auth.password_label')}</Label>
               <div className="relative group">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                 <Input
@@ -201,7 +201,7 @@ export default function RegisterPage() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  가입 완료하기
+                  {t('auth.complete_register')}
                   <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -211,9 +211,9 @@ export default function RegisterPage() {
 
         {/* Footer */}
         <p className="text-center text-sm text-gray-500 mt-8">
-          이미 계정이 있으신가요?{' '}
+          {t('auth.already_have_account')}{' '}
           <Link to="/login" className="font-bold text-blue-600 hover:text-blue-700 transition-colors">
-            로그인 하기
+            {t('auth.login_link')}
           </Link>
         </p>
       </div>

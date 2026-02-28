@@ -1,21 +1,25 @@
-import React from 'react';
+import { useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router';
-import { 
-  ArrowLeft, 
-  Trash2, 
-  Archive, 
-  Mail, 
-  MoreVertical, 
-  Reply, 
-  Forward, 
+import {
+  ArrowLeft,
+  Trash2,
+  Archive,
+  Mail,
+  MoreVertical,
+  Reply,
+  Forward,
   Star,
   MailOpen
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import { Email } from '../types';
 import { clsx } from 'clsx';
 import { Tooltip } from './Tooltip';
 import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { mailService } from '../api/services/mail.service';
+import { Loader2 } from 'lucide-react';
 import '../styles.css';
 
 interface EmailViewProps {
@@ -29,50 +33,141 @@ interface EmailViewProps {
 }
 
 export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleRead, onReply, onForward }: EmailViewProps) {
-  const { id, folder } = useParams();
+  const { t } = useTranslation();
+  const { id, accountId, folderName = 'INBOX' } = useParams();
   const navigate = useNavigate();
-  const email = emails.find(e => e.id === id);
+
+  // Get email from passed list to get messageNumber and provider
+  const emailFromList = emails.find(e => e.messageNumber?.toString() === id);
+
+  // Fetch Accounts to get accountId if not provided in params
+  const { data: accountsResponse } = useQuery({
+    queryKey: ['accounts'],
+    queryFn: () => mailService.getConnectedAccounts(),
+  });
+
+  // Fetch full mail detail
+  const { data: emailDetail, isLoading: isDetailLoading } = useQuery({
+    queryKey: ['email', id],
+    queryFn: async () => {
+      if (!emailFromList || !accountsResponse?.data?.accounts) return null;
+
+      const account = accountsResponse.data.accounts.find(
+        a => a.provider === emailFromList.provider
+      );
+
+      if (!account || !emailFromList.messageNumber) return null;
+
+      // Resolve folderName (type or folderId) to actual folderId
+      let folderId = folderName;
+      const folderByType = account.folders.find(f => f.type === folderName);
+      if (folderByType && folderByType.type !== 'CUSTOM') {
+        folderId = folderByType.folderId;
+      }
+
+      return mailService.getMailDetail(emailFromList.messageNumber, account.accountId, folderId);
+    },
+    enabled: !!id && !!emailFromList && !!accountsResponse,
+  });
+
+  const email = emailDetail || emailFromList;
+
+  const transformedContent = useMemo(() => {
+    if (!email?.content) return '';
+    let content = email.content;
+
+    // Handle inline images (cid: references to attachments)
+    if (email.attachments && email.attachments.length > 0) {
+      email.attachments.forEach((attachment: any) => {
+        if (attachment.contentId) {
+          // Some APIs wrap CID in <>, remove them
+          const cid = attachment.contentId.replace(/[<>]/g, '');
+          const cidRegex = new RegExp(`cid:${cid}`, 'g');
+
+          if (attachment.content) {
+            // If attachment has base64 content, create a data URL
+            const dataUrl = `data:${attachment.contentType || 'image/png'};base64,${attachment.content}`;
+            content = content.replace(cidRegex, dataUrl);
+          }
+        }
+      });
+    }
+
+    // Fix relative image paths and improve security/privacy
+    if (email.contentType !== 'text/plain') {
+      // Promote http to https to avoid mixed content issues
+      content = content.replace(/src=["']http:/g, 'src="https:');
+
+      content = content.replace(
+        /src=["'](?!\/\/|http|data)([^"']+)["']/g,
+        (_match, path) => `src="https://mailalphamail.com${path.startsWith('/') ? '' : '/'}${path}"`
+      );
+
+      // Ensure images don't leak referrer info and links open in new tabs
+      content = content.replace(/<img /g, '<img referrerpolicy="no-referrer" ');
+      content = content.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+    }
+
+    return content;
+  }, [email]);
+
+  if (!id) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
+        <Mail className="w-16 h-16 mb-4 opacity-20" />
+        <p>{t('email.select_to_read')}</p>
+      </div>
+    );
+  }
+
+  if (isDetailLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
+        <Loader2 className="w-10 h-10 animate-spin mb-4 text-blue-600" />
+        <p>{t('email.loading_content')}</p>
+      </div>
+    );
+  }
 
   if (!email) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-gray-400 bg-white">
-        <Mail className="w-16 h-16 mb-4 opacity-20" />
-        <p>Select an email to read</p>
+        <p>{t('email.not_found')}</p>
       </div>
     );
   }
 
   const handleDelete = () => {
     onDelete(email.id);
-    navigate(`/${folder}`);
+    navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`);
   };
 
   const handleArchive = () => {
     onArchive(email.id);
-    navigate(`/${folder}`);
+    navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`);
   };
 
   const handleAction = (action: string) => {
-    toast.info(`${action} menu opened`);
+    toast.info(`${action} 메뉴가 열렸습니다`);
   };
 
   return (
     <div className="email-view-container">
       <div className="email-toolbar">
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => navigate(`/${folder}`)}
+          <button
+            onClick={() => navigate(`/mail/${accountId}/${encodeURIComponent(folderName)}`)}
             className="p-2 hover:bg-gray-100 rounded-full lg:hidden"
           >
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div className="flex items-center gap-1">
-            <Tooltip text="Archive conversation">
+            <Tooltip text={t('email.archive_tooltip')}>
               <button onClick={handleArchive} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><Archive className="w-5 h-5" /></button>
             </Tooltip>
-            
-            <Tooltip text="Delete message">
-              <button 
+
+            <Tooltip text={t('email.delete_tooltip')}>
+              <button
                 onClick={handleDelete}
                 className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-red-600 transition-colors"
               >
@@ -80,7 +175,7 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
               </button>
             </Tooltip>
 
-            <Tooltip text={email.read ? "Mark as unread" : "Mark as read"}>
+            <Tooltip text={email.read ? t('email.mark_unread') : t('email.mark_read')}>
               <button onClick={() => onToggleRead(email.id)} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600">
                 {email.read ? <Mail className="w-5 h-5" /> : <MailOpen className="w-5 h-5" />}
               </button>
@@ -88,17 +183,17 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Tooltip text={email.starred ? "Remove from starred" : "Add to starred"}>
-            <button 
+          <Tooltip text={email.starred ? t('email.remove_star') : t('email.add_star')}>
+            <button
               onClick={() => onToggleStar(email.id)}
               className="p-2 hover:bg-gray-100 rounded-lg text-gray-600 hover:text-yellow-400 transition-colors"
             >
               <Star className={clsx("w-5 h-5", email.starred && "fill-yellow-400 text-yellow-400")} />
             </button>
           </Tooltip>
-          
-          <Tooltip text="More message options">
-            <button onClick={() => handleAction('Extended options')} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><MoreVertical className="w-5 h-5" /></button>
+
+          <Tooltip text={t('email.more_options')}>
+            <button onClick={() => handleAction(t('email.more_options'))} className="p-2 hover:bg-gray-100 rounded-lg text-gray-600"><MoreVertical className="w-5 h-5" /></button>
           </Tooltip>
         </div>
       </div>
@@ -117,35 +212,57 @@ export function EmailView({ emails, onToggleStar, onDelete, onArchive, onToggleR
               )}
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-gray-900">{email.sender}</h2>
-                  <span className="text-sm text-gray-400">&lt;{email.senderEmail}&gt;</span>
+                  {email.sender === email.senderEmail ? (
+                    <h2 className="font-semibold text-gray-900">{email.senderEmail}</h2>
+                  ) : (
+                    <>
+                      <h2 className="font-semibold text-gray-900">{email.sender}</h2>
+                      <span className="text-sm text-gray-400">&lt;{email.senderEmail}&gt;</span>
+                    </>
+                  )}
                 </div>
-                <p className="text-sm text-gray-500">to me</p>
+                <div className="flex items-center gap-1 text-sm text-gray-500">
+                  <span>{t('email.to_label')}</span>
+                  {email.receivers && email.receivers.length > 0 ? (
+                    email.receivers.map((r, i) => (
+                      <span key={i} className="font-medium text-gray-600">
+                        {(!r.name || r.name === r.email) ? r.email : `${r.name} <${r.email}>`}
+                        {i < email.receivers!.length - 1 ? ', ' : ''}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="font-medium text-gray-600">{t('email.me')}</span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-sm text-gray-500">{format(new Date(email.timestamp), 'MMM d, yyyy')}</p>
-              <p className="text-xs text-gray-400">{format(new Date(email.timestamp), 'h:mm a')}</p>
+              <p className="text-sm text-gray-500">{format(new Date(email.timestamp), t('date.year_format', 'yyyy년 M월 d일'))}</p>
+              <p className="text-xs text-gray-400">{format(new Date(email.timestamp), t('date.time_format', 'a h:mm'))}</p>
             </div>
           </div>
-          <div className="prose prose-blue max-w-none text-gray-800 leading-relaxed whitespace-pre-wrap">
-            {email.content}
-          </div>
+          <div
+            className={clsx(
+              "prose prose-blue max-w-none text-gray-800 leading-relaxed",
+              email.contentType === 'text/plain' && "whitespace-pre-wrap"
+            )}
+            dangerouslySetInnerHTML={{ __html: transformedContent }}
+          />
           <div className="mt-12 pt-8 border-t border-gray-100 flex gap-4">
-            <Tooltip text="Reply to sender">
-              <button 
-                onClick={() => onReply(email)} 
+            <Tooltip text={t('email.reply_tooltip')}>
+              <button
+                onClick={() => onReply(email)}
                 className="flex items-center gap-2 px-6 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors font-medium"
               >
-                <Reply className="w-4 h-4" /> Reply
+                <Reply className="w-4 h-4" /> {t('email.reply')}
               </button>
             </Tooltip>
-            <Tooltip text="Forward this message">
-              <button 
-                onClick={() => onForward(email)} 
+            <Tooltip text={t('email.forward_tooltip')}>
+              <button
+                onClick={() => onForward(email)}
                 className="flex items-center gap-2 px-6 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors font-medium"
               >
-                <Forward className="w-4 h-4" /> Forward
+                <Forward className="w-4 h-4" /> {t('email.forward')}
               </button>
             </Tooltip>
           </div>
