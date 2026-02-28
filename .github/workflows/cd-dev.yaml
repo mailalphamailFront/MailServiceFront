@@ -74,4 +74,29 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to:
+            type=gha,mode=max
+
+            # 1. 현재 사용 중인 Task Definition 파일을 다운로드 (로컬에 파일이 없을 경우 대비)
+      - name: Download task definition
+        run: |
+          aws ecs describe-task-definition --task-definition front --query taskDefinition > task-definition.json
+
+      # 2. Task Definition 파일의 이미지 주소를 방금 빌드한 새 이미지로 변경
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: front # ECS 작업 정의에 설정한 컨테이너 이름
+          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.TAG }}
+
+      # 3. 변경된 Task Definition을 등록하고 ECS 서비스를 업데이트 (배포 시작)
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: front-service
+          cluster: mail_test_cluster
+          wait-for-service-stability: false # 배포가 성공할 때까지 대기 (타임아웃 설정 가능)
+

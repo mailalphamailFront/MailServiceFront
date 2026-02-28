@@ -1,8 +1,8 @@
-name: Frontend (dev) - Build & Push to ECR on Release
+name: Frontend (prod) - Build & Push to ECR on Release
 
 on:
   release:
-    types: [prereleased]
+    types: [released]
 
 permissions:
   contents: read
@@ -18,15 +18,15 @@ env:
 
 jobs:
   build-and-push:
-    name: Build and push frontend image (dev)
+    name: Build and push frontend image (prod)
     runs-on: ubuntu-latest
 
     # GitHub Environment "dev"를 쓰고 싶으면 아래 줄을 켜고,
     # secrets를 Environment(dev)에 저장하면 됨
     environment: prod
 
-    # prerelease일 때만 실행 (published로 들어와도 prerelease면 통과)
-    if: ${{ github.event.release.prerelease == true }}
+    # 정식 릴리스일 때만 실행 (prerelease 제외)
+    if: ${{ github.event.release.prerelease == false }}
 
     steps:
       - name: Checkout
@@ -69,7 +69,7 @@ jobs:
           push: true
           tags: |
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.TAG }}
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:dev-latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.vars.outputs.SHA_TAG }}
           build-args: |
             VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
