@@ -411,7 +411,13 @@ export function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleConnect();
+                }}
+                className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6"
+              >
                 <div className="space-y-2">
                   <label className="text-sm font-bold text-gray-700 ml-1">
                     {t('settings.email_address_label')}
@@ -433,6 +439,7 @@ export function SettingsPage() {
                     </label>
                     <div className="flex gap-3">
                       <button
+                        type="button"
                         className="text-[12px] text-blue-600 hover:underline font-medium"
                         onClick={() => {
                           let envPassword = "";
@@ -478,6 +485,7 @@ export function SettingsPage() {
                         {t('settings.fill_password_env')}
                       </button>
                       <button
+                        type="button"
                         className="text-[12px] text-blue-600 hover:underline font-medium"
                         tabIndex={-1}
                       >
@@ -510,7 +518,7 @@ export function SettingsPage() {
                   />
                 </div>
                 <button
-                  onClick={handleConnect}
+                  type="submit"
                   disabled={isConnecting}
                   tabIndex={3}
                   className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -524,7 +532,7 @@ export function SettingsPage() {
                     t('settings.connect_account_button')
                   )}
                 </button>
-              </div>
+              </form>
 
 
             </div>

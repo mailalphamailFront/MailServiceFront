@@ -11,7 +11,7 @@ import { Tooltip } from './components/Tooltip';
 import { SettingsPage } from './components/SettingsPage';
 import { Email } from './types';
 import { toast, Toaster } from 'sonner';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { mailService } from './api/services/mail.service';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -194,6 +194,9 @@ function Layout({
 interface EmailListPageProps {
   emails: Email[];
   isLoading: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => void;
   onToggleStar: (id: string, starred: boolean) => void;
   onDelete: (id: string) => void;
   onBulkDelete: (ids: string[]) => void;
@@ -204,7 +207,21 @@ interface EmailListPageProps {
   onForward: (email: Email) => void;
 }
 
-function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onBulkDelete, onArchive, onToggleRead, onMarkRead, onReply, onForward }: EmailListPageProps) {
+function EmailListPage({
+  emails,
+  isLoading,
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
+  onToggleStar,
+  onDelete,
+  onBulkDelete,
+  onArchive,
+  onToggleRead,
+  onMarkRead,
+  onReply,
+  onForward
+}: EmailListPageProps) {
   const { t } = useTranslation();
   const location = useLocation();
   const { folderName, accountId: pathAccountId, id } = useParams();
@@ -214,7 +231,8 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onBulkDelete
   const folder = folderName || 'INBOX';
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Clear selection when folder or account changes
+  const observerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setSelectedIds([]);
   }, [folderName, pathAccountId]);
@@ -241,15 +259,6 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onBulkDelete
     }
   };
 
-  const filteredEmails = useMemo(() => {
-    return emails.filter(email => {
-      const matchesSearch = !query ||
-        email.sender.toLowerCase().includes(query) ||
-        email.subject.toLowerCase().includes(query);
-      return matchesSearch;
-    });
-  }, [emails, query]);
-
   let folderTitle = t('email.messages_title', '메시지');
   if (location.pathname.startsWith('/mail/all')) {
     folderTitle = t('nav.all_inboxes');
@@ -275,6 +284,25 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onBulkDelete
       folderTitle = folderTitle.charAt(0).toUpperCase() + folderTitle.slice(1);
     }
   }
+
+  useEffect(() => {
+    if (!hasNextPage || isFetchingNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <>
@@ -306,28 +334,37 @@ function EmailListPage({ emails, isLoading, onToggleStar, onDelete, onBulkDelete
                 <Tooltip text={t('email.toggle_layout', '레이아웃 보기 전환')}>
                   <button onClick={() => toast.info(t('email.layout_updated', '레이아웃 보기가 업데이트되었습니다'))} className="p-1 hover:bg-gray-50 rounded"><LayoutGrid className="w-4 h-4" /></button>
                 </Tooltip>
-                <span className="text-xs">{filteredEmails.length}{t('email.messages_count', '개의 메시지')}</span>
+                <span className="text-xs">{emails.length}{t('email.messages_count', '개의 메시지')}</span>
               </div>
             </>
           )}
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {isLoading ? (
+          {isLoading && emails.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400">
               <Loader2 className="w-8 h-8 animate-spin mb-2" />
               <p className="text-sm">{t('email.loading_messages')}</p>
             </div>
-          ) : filteredEmails.length > 0 ? (
-            filteredEmails.map(email => (
-              <EmailListItem
-                key={email.id}
-                email={email}
-                onMarkRead={onMarkRead}
-                isSelected={selectedIds.includes(email.id)}
-                onToggleSelection={() => handleToggleSelection(email.id)}
-              />
-            ))
+          ) : emails.length > 0 ? (
+            <>
+              {emails.map(email => (
+                <EmailListItem
+                  key={email.id}
+                  email={email}
+                  onMarkRead={onMarkRead}
+                  isSelected={selectedIds.includes(email.id)}
+                  onToggleSelection={() => handleToggleSelection(email.id)}
+                />
+              ))}
+
+              {/* Infinite Scroll Trigger */}
+              <div ref={observerRef} className="h-10 flex items-center justify-center p-4">
+                {isFetchingNextPage && (
+                  <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                )}
+              </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8 text-center">
               <Search className="w-12 h-12 mb-4 opacity-10" />
@@ -393,7 +430,6 @@ export default function App() {
     }
   }
 
-  const page = parseInt(searchParams.get('page') || '0', 10);
   const searchQuery = searchParams.get('q') || '';
 
   // Fetch Accounts
@@ -419,12 +455,28 @@ export default function App() {
     return currentFolderId;
   }, [currentFolderId, currentAccountId, accountsResponse]);
 
-  const { data: emails = [], isLoading } = useQuery({
-    queryKey: ['emails', resolvedFolderId, currentAccountId, page, searchQuery],
-    queryFn: () => mailService.loadEmails(resolvedFolderId!, currentAccountId!, page, searchQuery),
+  const {
+    data: infiniteEmails,
+    isLoading,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
+    queryKey: ['emails', resolvedFolderId, currentAccountId, searchQuery],
+    queryFn: ({ pageParam = 0 }) =>
+      mailService.loadEmails(resolvedFolderId!, currentAccountId!, pageParam as number, searchQuery),
+    getNextPageParam: (lastPage, allPages) => {
+      // If the last page returned data, try fetching the next page
+      return lastPage.length > 0 ? allPages.length : undefined;
+    },
+    initialPageParam: 0,
     enabled: !!userEmail && !!resolvedFolderId,
     retry: false,
   });
+
+  const emails = useMemo(() => {
+    return infiniteEmails?.pages.flat() || [];
+  }, [infiniteEmails]);
 
   // Mutations
   const starMutation = useMutation({
@@ -455,19 +507,23 @@ export default function App() {
     mutationFn: ({ messageNumber, accountId, folderId }: { messageNumber: number, accountId: number, folderId: string }) =>
       mailService.markAsRead(messageNumber, accountId, folderId),
     onMutate: async ({ messageNumber }) => {
-      const queryKey = ['emails', resolvedFolderId, currentAccountId, page, searchQuery];
+      const queryKey = ['emails', resolvedFolderId, currentAccountId, searchQuery];
       await queryClient.cancelQueries({ queryKey });
-      const previousEmails = queryClient.getQueryData<Email[]>(queryKey);
-      queryClient.setQueryData<Email[]>(queryKey, (old) =>
-        old?.map((email) =>
-          email.messageNumber === messageNumber ? { ...email, read: true } : email
+      const previousData = queryClient.getQueryData<any>(queryKey);
+
+      queryClient.setQueryData<any>(queryKey, (old: any) => ({
+        ...old,
+        pages: old?.pages.map((page: Email[]) =>
+          page.map((email) =>
+            email.messageNumber === messageNumber ? { ...email, read: true } : email
+          )
         )
-      );
-      return { previousEmails };
+      }));
+      return { previousData };
     },
     onError: (_err, _variables, context) => {
-      if (context?.previousEmails) {
-        queryClient.setQueryData(['emails', resolvedFolderId, currentAccountId, page, searchQuery], context.previousEmails);
+      if (context?.previousData) {
+        queryClient.setQueryData(['emails', resolvedFolderId, currentAccountId, searchQuery], context.previousData);
       }
     },
   });
@@ -626,6 +682,9 @@ export default function App() {
                     <EmailListPage
                       emails={emails}
                       isLoading={isLoading}
+                      hasNextPage={!!hasNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
+                      fetchNextPage={fetchNextPage}
                       onToggleStar={toggleStar}
                       onDelete={deleteEmail}
                       onBulkDelete={handleBulkDelete}
@@ -643,6 +702,9 @@ export default function App() {
                     <EmailListPage
                       emails={emails}
                       isLoading={isLoading}
+                      hasNextPage={!!hasNextPage}
+                      isFetchingNextPage={isFetchingNextPage}
+                      fetchNextPage={fetchNextPage}
                       onToggleStar={toggleStar}
                       onDelete={deleteEmail}
                       onBulkDelete={handleBulkDelete}
