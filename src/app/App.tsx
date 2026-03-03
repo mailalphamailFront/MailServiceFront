@@ -14,6 +14,9 @@ import { toast, Toaster } from 'sonner';
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { mailService } from './api/services/mail.service';
 import LoginPage from './pages/LoginPage';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminPage from './pages/AdminPage';
+import AccessDeniedPage from './pages/AccessDeniedPage';
 import RegisterPage from './pages/RegisterPage';
 import NotFoundPage from './pages/NotFoundPage';
 
@@ -25,10 +28,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function PublicRoute({ children, redirectTo = "/inbox" }: { children: React.ReactNode, redirectTo?: string }) {
   const token = localStorage.getItem('token');
   if (token) {
-    return <Navigate to="/inbox" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
   return <>{children}</>;
 }
@@ -226,8 +229,6 @@ function EmailListPage({
   const location = useLocation();
   const { folderName, accountId: pathAccountId, id } = useParams();
   const queryClient = useQueryClient();
-  const [searchParams] = useSearchParams();
-  const query = searchParams.get('q')?.toLowerCase() || '';
   const folder = folderName || 'INBOX';
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -660,7 +661,10 @@ export default function App() {
     <>
       <Routes>
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/admin-login" element={<PublicRoute redirectTo="/access-denied"><AdminLoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/admin-page" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+        <Route path="/access-denied" element={<AccessDeniedPage />} />
 
         <Route path="/*" element={
           <ProtectedRoute>
