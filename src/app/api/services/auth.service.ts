@@ -1,14 +1,30 @@
 import api from '../axiosInstance';
 
+export interface UserData {
+  id: number;
+  username: string;
+  role: 'ROLE_USER' | 'ROLE_ADMIN';
+}
+
+export interface LoginResponse {
+  success: boolean;
+  code: string;
+  message: string;
+  data: UserData;
+  token?: string;
+  accessToken?: string;
+  user?: any;
+}
+
 export const authService = {
   // Login an existing user
 
-  login: async (credentials: any) => {
+  login: async (credentials: any): Promise<LoginResponse> => {
     const params = new URLSearchParams();
     params.append('username', credentials.username);
     params.append('password', credentials.password);
 
-    const response = await api.post('/api/login', params, {
+    const response = await api.post<LoginResponse>('/api/login', params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -47,8 +63,8 @@ export const authService = {
   // withdraw user account
   withdraw: async (password: string) => {
     const response = await api.delete('/api/users/withdraw', {
-    data: { password }
-  });
-  return response.data;
-}
+      data: { password }
+    });
+    return response.data;
+  }
 };

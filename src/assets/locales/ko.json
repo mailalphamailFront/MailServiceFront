@@ -175,7 +175,11 @@
         "fill_and_verify": "모든 필드를 입력하고 이메일 인증을 완료해주세요.",
         "fill_code": "인증번호를 입력해주세요.",
         "invalid_code": "인증번호가 올바르지 않습니다.",
-        "login_error": "로그인 중 오류가 발생했습니다."
+        "login_error": "로그인 중 오류가 발생했습니다.",
+        "admin_login": "관리자 로그인",
+        "no_admin_access": "관리자 권한이 없습니다.",
+        "no_admin_access_desc": "이 페이지에 접근할 수 있는 관리자 권한이 없습니다.",
+        "admin_login_success": "관리자 계정으로 로그인했습니다."
     },
     "error_page": {
         "not_found_title": "페이지를 찾을 수 없습니다",
